@@ -1,0 +1,4 @@
+ollama
+mcp
+pydantic
+requests
