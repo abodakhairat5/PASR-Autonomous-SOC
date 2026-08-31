@@ -8,27 +8,23 @@ venv/
 .venv/
 env/
 
-# Environment variables
+# Environment / secrets
 .env
-
-# SQLite database
-*.db
-*.sqlite
-*.sqlite3
+.env.*
+!.env.example
 
 # IDE
 .vscode/
 .idea/
 
+# Logs
+*.log
+
+# Local database / runtime data
+*.db
+*.sqlite
+*.sqlite3
+
 # OS
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Testing / Coverage
-.pytest_cache/
-.coverage
-htmlcov/
