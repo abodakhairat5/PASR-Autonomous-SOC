@@ -1,53 +1,70 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from agents import triage_agent, threat_analysis_agent
-from guardrails import validate_action
-from database import init_db, log_incident
 
-# إنشاء/تهيئة قاعدة البيانات عند بدء التشغيل
-init_db()
+from orchestrator.pipeline import run_soc_pipeline
+from memory.memory import get_events_by_source_ip
 
-app = FastAPI(title="Autonomous SOC AI Engine API")
+
+app = FastAPI(
+    title="PASR Autonomous SOC API",
+    description="AI-powered Autonomous Security Operations Center",
+    version="1.0.0",
+)
+
 
 class LogPayload(BaseModel):
     raw_log: str
 
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "PASR Autonomous SOC",
+    }
+
+
 @app.post("/analyze-log")
 async def analyze_log(payload: LogPayload):
     try:
-        # 1. Triage Phase
-        triage_result = triage_agent(payload.raw_log)
-        
-        if triage_result.get("is_false_positive"):
-            return {
-                "status": "dropped",
-                "reason": "False Positive",
-                "triage": triage_result
-            }
-
-        # 2. Threat Analysis Phase
-        analysis_result = threat_analysis_agent(triage_result)
-        proposed_action = analysis_result.get("recommended_action")
-        source_ip = triage_result.get("source_ip")
-
-        # 3. Guardrails Engine
-        guardrail_result = validate_action(proposed_action, source_ip)
-
-        # 4. Save to Database
-        log_incident(
-            source_ip=source_ip,
-            attack_type=triage_result.get("attack_type", "UNKNOWN"),
-            severity=triage_result.get("severity", "UNKNOWN"),
-            action_taken=guardrail_result.get("override_action"),
-            guardrail_approved=guardrail_result.get("approved"),
-            reason=guardrail_result.get("reason")
-        )
+        result = run_soc_pipeline(payload.raw_log)
 
         return {
             "status": "processed",
-            "triage": triage_result,
-            "threat_analysis": analysis_result,
-            "guardrail_decision": guardrail_result
+
+            "final_action": result["final_action"],
+
+            "attack": result["attack"].model_dump(),
+            "correlation": result["correlation"].model_dump(),
+            "risk": result["risk"].model_dump(),
+            "decision": result["decision"].model_dump(),
+            "rule": result["rule"].model_dump(),
+            "explanation": result["explanation"].model_dump(),
+            "knowledge": result["knowledge"].model_dump(),
+
+            "guardrail": result["guardrail"],
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )
+
+
+@app.get("/incidents/{source_ip}")
+async def get_incidents(source_ip: str):
+    try:
+        events = get_events_by_source_ip(source_ip)
+
+        return {
+            "source_ip": source_ip,
+            "count": len(events),
+            "events": events,
+        }
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )
