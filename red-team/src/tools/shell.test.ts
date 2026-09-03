@@ -1,0 +1,296 @@
+// Shell denylist + execution tests.
+
+import { afterEach, describe, expect, it } from 'vitest';
+import { AlwaysAllow } from '../permission/permission.js';
+import {
+  BashTool,
+  DENY_PATTERNS,
+  ShellTool,
+  rewritePortableCommand,
+  shellInvocation,
+} from './shell.js';
+
+// Run a callback with process.platform forced to `platform`, then restore it.
+// isWindows() reads process.platform at call time, so this exercises the
+// Windows code paths from a macOS/Linux CI host without spawning anything.
+function withPlatform<T>(platform: NodeJS.Platform, fn: () => T): T {
+  const original = Object.getOwnPropertyDescriptor(process, 'platform');
+  Object.defineProperty(process, 'platform', { value: platform, configurable: true });
+  try {
+    return fn();
+  } finally {
+    if (original) Object.defineProperty(process, 'platform', original);
+  }
+}
+
+describe('shell denylist', () => {
+  const cases: Array<{ name: string; cmd: string; shouldBlock: boolean }> = [
+    { name: 'rm -rf /', cmd: 'rm -rf /', shouldBlock: true },
+    { name: 'rm -fr / (flag order)', cmd: 'rm -fr /', shouldBlock: true },
+    { name: 'rm --recursive --force /', cmd: 'rm --recursive --force /', shouldBlock: true },
+    { name: 'rm -rf /*', cmd: 'rm -rf /*', shouldBlock: true },
+    { name: 'rm -rf /home (top-level)', cmd: 'rm -rf /home', shouldBlock: true },
+    { name: 'rm -rf "/etc" (quoted top-level)', cmd: 'rm -rf "/etc"', shouldBlock: true },
+    { name: 'rm -rf /home/user (no trailing root)', cmd: 'rm -rf /home/user', shouldBlock: false },
+    { name: 'rm -rf ./build (relative)', cmd: 'rm -rf ./build', shouldBlock: false },
+    { name: 'find / -delete', cmd: 'find / -delete', shouldBlock: true },
+    { name: 'find . -exec rm', cmd: 'find . -name x -exec rm {} ;', shouldBlock: true },
+    { name: 'poweroff', cmd: 'poweroff', shouldBlock: true },
+    { name: 'fork bomb', cmd: ':(){ :|:& };:', shouldBlock: true },
+    { name: 'mkfs', cmd: 'mkfs.ext4 /dev/sda1', shouldBlock: true },
+    { name: 'dd to /dev disk', cmd: 'dd if=/dev/zero of=/dev/sda', shouldBlock: true },
+    { name: 'redirect to /dev/sda', cmd: 'cat file > /dev/sda', shouldBlock: true },
+    { name: 'shutdown', cmd: 'shutdown -h now', shouldBlock: true },
+    { name: 'reboot', cmd: 'reboot', shouldBlock: true },
+    { name: 'normal curl', cmd: 'curl -s https://example.com', shouldBlock: false },
+    { name: 'normal ls', cmd: 'ls -la /tmp', shouldBlock: false },
+    { name: 'jq pipeline', cmd: 'curl -s url | jq .', shouldBlock: false },
+  ];
+
+  for (const tc of cases) {
+    it(`${tc.name} → ${tc.shouldBlock ? 'block' : 'allow'}`, () => {
+      const blocked = DENY_PATTERNS.some((re) => re.test(tc.cmd));
+      expect(blocked).toBe(tc.shouldBlock);
+    });
+  }
+});
+
+describe('ShellTool.run', () => {
+  it.skipIf(process.platform === 'win32')('describes portable grep usage and avoids grep -P guidance', () => {
+    const desc = new ShellTool().description();
+    expect(desc).toContain('grep -P');
+    expect(desc).toContain('grep -E');
+    expect(desc).toContain('macOS/BSD');
+  });
+
+  it.skipIf(process.platform === 'win32')('executes a benign command and returns stdout', async () => {
+    const t = new ShellTool();
+    const out = await t.run(
+      { command: 'echo hello && echo world' },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('exit: 0');
+    expect(out).toContain('hello');
+    expect(out).toContain('world');
+  });
+
+  it('rejects a blocked command before spawn', async () => {
+    const t = new ShellTool();
+    await expect(
+      t.run({ command: 'rm -rf /' }, new AbortController().signal, new AlwaysAllow()),
+    ).rejects.toThrow(/blocked by denylist/);
+  });
+
+  it.skipIf(process.platform === 'win32')('rewrites common grep -P forms to portable perl, passing the pattern as data', () => {
+    // The pattern travels through the PF_GREP_PAT env var, never inlined into
+    // the Perl source, so a malicious pattern can't become a code-exec primitive.
+    expect(rewritePortableCommand("printf 'abc' | grep -P 'a'")).toBe(
+      "printf 'abc' | PF_GREP_PAT='a' perl -ne 'BEGIN { $p = $ENV{PF_GREP_PAT} } print if /$p/'",
+    );
+    expect(rewritePortableCommand("printf 'abc' | grep -oP 'a.'")).toBe(
+      "printf 'abc' | PF_GREP_PAT='a.' perl -ne 'BEGIN { $p = $ENV{PF_GREP_PAT} } while (/$p/g) { print \"$&\\n\" }'",
+    );
+    expect(rewritePortableCommand("printf 'ABC' | grep -iP 'a'")).toBe(
+      "printf 'ABC' | PF_GREP_PAT='a' perl -ne 'BEGIN { $p = $ENV{PF_GREP_PAT} } print if /$p/i'",
+    );
+    expect(rewritePortableCommand("printf 'abc' | grep --perl-regexp 'a'")).toBe(
+      "printf 'abc' | PF_GREP_PAT='a' perl -ne 'BEGIN { $p = $ENV{PF_GREP_PAT} } print if /$p/'",
+    );
+  });
+
+  it.skipIf(process.platform === 'win32')('treats a grep -P pattern as inert data, not a Perl exec primitive (H1)', async () => {
+    // The classic payload runs `id` when inlined into a /.../ literal; as data
+    // it must match nothing and never execute.
+    const rewritten = rewritePortableCommand("grep -P '@{[ `id` ]}' /dev/null");
+    expect(rewritten).not.toContain('`id`/');
+    expect(rewritten).toContain('PF_GREP_PAT=');
+    const out = await new ShellTool().run(
+      { command: "printf 'x\\n' | grep -P '@{[ `echo PWNED` ]}'", timeout_seconds: 5 },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).not.toContain('PWNED');
+  });
+
+  it.skipIf(process.platform === 'win32')('does not rewrite grep -P inside an echo/awk string, or with trailing flags', () => {
+    // L2: literal `grep -P` inside a quoted string is not at a command position.
+    expect(rewritePortableCommand('echo "look at grep -P xyz"')).toBe('echo "look at grep -P xyz"');
+    // L1: trailing context/format flags have no faithful perl translation, so we
+    // leave the original in place (the portability guard then surfaces a message).
+    expect(rewritePortableCommand("grep -P 'a' -A3 file")).toBe("grep -P 'a' -A3 file");
+  });
+
+  it.skipIf(process.platform === 'win32')('executes rewritten grep -P commands instead of blocking on macOS/BSD grep', async () => {
+    const t = new ShellTool();
+    const out = await t.run(
+      { command: "printf 'abc\\nxyz\\n' | grep -oP 'a.'", timeout_seconds: 5 },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('ab');
+    expect(out).toContain('exit: 0');
+  });
+
+  it.skipIf(process.platform === 'win32')('blocks known GNU-only commands with portable replacement guidance', async () => {
+    const t = new ShellTool();
+    const cases = [
+      { command: "printf 'abc' | grep -Pr 'a'", message: /grep -P/ },
+      { command: "printf 'abc' | sed -r 's/a/A/'", message: /sed -r/ },
+      { command: "printf 'abc' | base64 -w0", message: /base64 -w/ },
+      { command: 'readlink -f ./package.json', message: /readlink -f/ },
+      { command: 'date -d tomorrow', message: /date -d/ },
+      { command: "printf '' | xargs -r echo", message: /xargs -r/ },
+      { command: 'stat -c %s package.json', message: /stat -c/ },
+      { command: "printf '1.2\\n1.10\\n' | sort -V", message: /sort -V/ },
+      { command: 'timeout 2 curl -s https://example.com', message: /timeout/ },
+    ];
+
+    for (const tc of cases) {
+      await expect(
+        t.run({ command: tc.command }, new AbortController().signal, new AlwaysAllow()),
+      ).rejects.toThrow(tc.message);
+    }
+  });
+
+  it.skipIf(process.platform === 'win32')('allows portable grep and sed alternatives', async () => {
+    const t = new ShellTool();
+    const out = await t.run(
+      { command: "printf 'abc\\n' | grep -E 'a.c' | sed -E 's/a/A/'" },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('Abc');
+  });
+
+  it('errors when command is missing', async () => {
+    const t = new ShellTool();
+    await expect(t.run({}, new AbortController().signal, new AlwaysAllow())).rejects.toThrow(
+      /command is required/,
+    );
+  });
+
+  it.skipIf(process.platform === 'win32')('captures stderr alongside stdout', async () => {
+    const t = new ShellTool();
+    const out = await t.run(
+      { command: 'echo stdout-line; echo stderr-line >&2; exit 3' },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('stdout-line');
+    expect(out).toContain('stderr-line');
+    expect(out).toContain('exit: 3');
+  });
+
+  it('reports tool timeouts instead of surfacing AbortError', async () => {
+    const t = new ShellTool();
+    const out = await t.run(
+      { command: 'sleep 2', timeout_seconds: 1 },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('timeout after 1s');
+    expect(out).not.toContain('AbortError');
+  });
+});
+
+describe('ShellTool output cap', () => {
+  it.skipIf(process.platform === 'win32')('bounds retained output to ~MAX_OUTPUT_BYTES even for huge streams', async () => {
+    const t = new ShellTool();
+    // Emit ~1MB; the model should only ever see the 64KB head+tail budget plus
+    // the truncation marker, and the process must not buffer the whole thing.
+    const out = await t.run(
+      { command: 'head -c 1000000 /dev/zero | tr "\\0" "a"' },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('truncated');
+    // 64KB retained + small framing/marker; nowhere near the 1MB emitted.
+    expect(out.length).toBeLessThan(80 * 1024);
+  });
+
+  it.skipIf(process.platform === 'win32')('retains the tail of a large stream where scanner verdicts live', async () => {
+    const t = new ShellTool();
+    // A unique head marker, a large middle that gets elided, and a unique tail
+    // marker. The old head-only cap discarded the tail; both must now survive.
+    const out = await t.run(
+      {
+        command:
+          "printf 'HEAD_MARKER'; head -c 200000 /dev/zero | tr '\\0' 'a'; printf 'TAIL_VERDICT'",
+      },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('HEAD_MARKER');
+    expect(out).toContain('TAIL_VERDICT');
+    expect(out).toContain('truncated');
+  });
+
+  it('does not opt out of allow-session caching', () => {
+    const t = new ShellTool();
+    expect(t.permissionHints?.({ command: 'id' })?.noSessionCache).not.toBe(true);
+  });
+});
+
+describe('BashTool', () => {
+  it('runs bash-only constructs', async () => {
+    const t = new BashTool();
+    const out = await t.run(
+      { command: '[[ -d /tmp ]] && echo bash-ok' },
+      new AbortController().signal,
+      new AlwaysAllow(),
+    );
+    expect(out).toContain('bash-ok');
+  });
+});
+
+describe('Windows shell invocation (issue #11)', () => {
+  afterEach(() => {
+    process.env.PFLOW_WINDOWS_SHELL = undefined;
+    // biome-ignore lint/performance/noDelete: restore env to a clean state
+    delete process.env.PFLOW_WINDOWS_SHELL;
+  });
+
+  it('spawns /bin/sh -c on POSIX', () => {
+    const inv = withPlatform('linux', () => shellInvocation('/bin/sh', 'echo hi'));
+    expect(inv).toEqual({ cmd: '/bin/sh', argv: ['-c', 'echo hi'] });
+  });
+
+  it('spawns PowerShell -Command on Windows instead of /bin/sh', () => {
+    const inv = withPlatform('win32', () => shellInvocation('/bin/sh', 'echo hi'));
+    expect(inv.cmd).toBe('powershell.exe');
+    expect(inv.argv).toEqual(['-NoProfile', '-NonInteractive', '-Command', 'echo hi']);
+    // The /bin/sh path that triggered uv_spawn ENOENT must not be the target.
+    expect(inv.cmd).not.toBe('/bin/sh');
+    expect(inv.argv).not.toContain('-c');
+  });
+
+  it('routes BashTool through PowerShell on Windows too (no /bin/bash)', () => {
+    const inv = withPlatform('win32', () => shellInvocation('/bin/bash', 'Get-ChildItem'));
+    expect(inv.cmd).toBe('powershell.exe');
+    expect(inv.cmd).not.toBe('/bin/bash');
+  });
+
+  it('honors PFLOW_WINDOWS_SHELL override on Windows', () => {
+    process.env.PFLOW_WINDOWS_SHELL = 'pwsh.exe';
+    const inv = withPlatform('win32', () => shellInvocation('/bin/sh', 'echo hi'));
+    expect(inv.cmd).toBe('pwsh.exe');
+  });
+
+  it('skips the Unix grep -P → perl rewrite on Windows', () => {
+    const cmd = "type x | grep -P 'a'";
+    expect(withPlatform('win32', () => rewritePortableCommand(cmd))).toBe(cmd);
+    // Sanity: on POSIX the same input *is* rewritten, proving the guard matters.
+    expect(withPlatform('linux', () => rewritePortableCommand(cmd))).toContain('perl -ne');
+  });
+
+  it('surfaces PowerShell-appropriate tool guidance on Windows', () => {
+    const desc = withPlatform('win32', () => new ShellTool().description());
+    expect(desc).toContain('PowerShell');
+    expect(desc).not.toContain('/bin/sh');
+    const schema = withPlatform('win32', () => new ShellTool().schema()) as {
+      properties: { command: { description: string } };
+    };
+    expect(schema.properties.command.description).toContain('PowerShell');
+  });
+});

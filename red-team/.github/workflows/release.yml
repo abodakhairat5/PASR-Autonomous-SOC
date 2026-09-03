@@ -1,0 +1,261 @@
+name: release
+
+# Cut a versioned release by pushing a version tag (e.g. `v0.1.0`).
+# Every push to main also creates the next patch release (e.g. `v0.1.1`)
+# with generated release notes, so installers and `/update latest` pick up
+# a numbered release with a changelog.
+# Can also be run from the Actions tab (workflow_dispatch) for a dry-run rebuild.
+#
+# Pipeline: verify (full CI) -> cross-platform standalone binaries (Bun) ->
+# GitHub Release with SHA256SUMS + auto-generated notes -> npm publish
+# (tag pushes only, when an NPM_TOKEN secret is configured).
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag/version to release against (e.g. v0.1.0)'
+        required: true
+
+permissions:
+  contents: write # create the Release + upload assets
+  id-token: write # npm publish --provenance
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: prepare release
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_name: ${{ steps.version.outputs.release_name }}
+      should_publish_release: ${{ steps.version.outputs.should_publish_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
+            git fetch --tags --force
+            latest="$(
+              git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname |
+              grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+              head -n 1 ||
+              true
+            )"
+            if [[ -z "${latest}" ]]; then
+              latest="v0.1.0"
+            fi
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            release_tag="v${major}.${minor}.$((patch + 1))"
+            should_publish_release="true"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            release_tag="${GITHUB_REF_NAME}"
+            should_publish_release="true"
+          else
+            release_tag="${{ github.event.inputs.tag }}"
+            should_publish_release="false"
+          fi
+
+          {
+            echo "release_tag=${release_tag}"
+            echo "release_name=PentesterFlow ${release_tag}"
+            echo "should_publish_release=${should_publish_release}"
+          } >> "$GITHUB_OUTPUT"
+
+  # Gate: never ship anything unless the full suite is green.
+  verify:
+    name: verify
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run ci # typecheck -> lint -> test -> build
+
+  # One artifact per OS/arch. Bun cross-compiles every target from a single
+  # Linux host, so the whole matrix runs without macOS/Windows runners.
+  binaries:
+    name: build ${{ matrix.name }}
+    needs: [prepare, verify]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: bun-darwin-arm64, name: pentesterflow-darwin-arm64 }
+          # Keep x64 asset names stable, but use Bun's baseline runtime so
+          # older x86_64 CPUs do not crash with SIGILL before startup.
+          - { target: bun-darwin-x64-baseline, name: pentesterflow-darwin-x64 }
+          - { target: bun-linux-x64-baseline, name: pentesterflow-linux-x64 }
+          - { target: bun-linux-arm64, name: pentesterflow-linux-arm64 }
+          - { target: bun-windows-x64-baseline, name: pentesterflow-windows-x64.exe }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Stamp version into the binary
+        run: |
+          RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
+          if [[ "${RELEASE_TAG}" == v* ]]; then
+            VER="${RELEASE_TAG#v}"
+          else
+            VER="main-${GITHUB_SHA::7}"
+          fi
+          # The Bun-compiled binary doesn't run tsup's --define, so it reads
+          # the FALLBACK in version.ts. Patch it to the release version so
+          # `pentesterflow --version` reports correctly. No-op if unmatched.
+          sed -i "s/const FALLBACK = 'dev';/const FALLBACK = '${VER}';/" src/version/version.ts
+      - name: Compile standalone binary
+        run: |
+          mkdir -p dist-bin
+          bun build src/cli/index.ts \
+            --compile \
+            --minify \
+            --target ${{ matrix.target }} \
+            --outfile dist-bin/${{ matrix.name }}
+      - name: Checksum
+        run: cd dist-bin && sha256sum "${{ matrix.name }}" > "${{ matrix.name }}.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist-bin/*
+          if-no-files-found: error
+
+  # Collect every binary + a combined SHA256SUMS into one GitHub Release.
+  release:
+    name: github release
+    needs: [prepare, binaries]
+    if: needs.prepare.outputs.should_publish_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create numbered release tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${{ needs.prepare.outputs.release_tag }}" "${GITHUB_SHA}"
+          git push origin "refs/tags/${{ needs.prepare.outputs.release_tag }}"
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-bin
+          merge-multiple: true
+      - name: Aggregate checksums
+        run: |
+          cd dist-bin
+          cat ./*.sha256 > SHA256SUMS
+          rm -f ./*.sha256
+          echo "Release assets:" && ls -la
+      # Never publish a partial / out-of-sync release: every expected binary
+      # must be present AND listed in SHA256SUMS before we cut the release.
+      # A missing windows entry here is exactly what broke installs in #14.
+      - name: Verify release assets are complete and consistent
+        run: |
+          set -euo pipefail
+          cd dist-bin
+          expected=(
+            pentesterflow-darwin-arm64
+            pentesterflow-darwin-x64
+            pentesterflow-linux-x64
+            pentesterflow-linux-arm64
+            pentesterflow-windows-x64.exe
+          )
+          test -s SHA256SUMS || { echo "::error::SHA256SUMS is missing or empty"; exit 1; }
+          fail=0
+          for a in "${expected[@]}"; do
+            if [[ ! -s "$a" ]]; then
+              echo "::error::release asset missing or empty: $a"; fail=1
+            fi
+            if ! awk -v a="$a" '$2==a{found=1} END{exit !found}' SHA256SUMS; then
+              echo "::error::SHA256SUMS does not list $a"; fail=1
+            fi
+          done
+          exit "$fail"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          make_latest: true
+          files: |
+            dist-bin/*
+
+  dry-run:
+    name: dry-run artifacts
+    needs: [prepare, binaries]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-bin
+          merge-multiple: true
+      - name: Aggregate checksums
+        run: |
+          cd dist-bin
+          cat ./*.sha256 > SHA256SUMS
+          rm -f ./*.sha256
+          echo "Dry-run assets:" && ls -la
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-dry-run-${{ needs.prepare.outputs.release_tag }}
+          path: dist-bin/*
+          if-no-files-found: error
+
+  # npm publish runs only for real tag pushes (not manual dry-runs) and only
+  # when an NPM_TOKEN secret exists, so the GitHub Release never fails just
+  # because publishing isn't configured yet.
+  npm:
+    name: publish npm
+    needs: [prepare, verify]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - name: Stamp version from tag
+        run: |
+          RELEASE_TAG="${{ needs.prepare.outputs.release_tag }}"
+          npm pkg set version="${RELEASE_TAG#v}"
+      - run: npm run build
+      - name: Publish to npm
+        if: env.NPM_TOKEN != ''
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish skipped
+        if: env.NPM_TOKEN == ''
+        run: echo "NPM_TOKEN secret not set — skipping npm publish. The GitHub Release was still created."
