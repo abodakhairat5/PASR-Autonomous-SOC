@@ -154,13 +154,27 @@ def run_soc_pipeline(raw_log: str):
     # Save event to Memory
     # ============================================================
     try:
+        # Persist the full pipeline result alongside the summary fields so
+        # the dashboard can display rich historical detail.
+        details_payload = {
+            "attack": attack_result.model_dump(),
+            "correlation": correlation_result.model_dump(),
+            "risk": risk_result.model_dump(),
+            "decision": decision_result.model_dump(),
+            "rule": rule_result.model_dump(),
+            "explanation": explanation_result.model_dump(),
+            "knowledge": knowledge_result.model_dump(),
+            "guardrail": guardrail_result,
+        }
+
         save_event(
             source_ip=source_ip,
             attack_type=attack_result.attack_type,
             severity=risk_result.severity,
             action_taken=guardrail_result["override_action"],
             guardrail_approved=guardrail_result["approved"],
-            reason=guardrail_result["reason"]
+            reason=guardrail_result["reason"],
+            details=details_payload
         )
 
         print("\n[Memory] Event saved successfully.")

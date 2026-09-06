@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>PASR_IMPLEMENTATION_STATUS.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> or <div class="page"></div> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="pasr-autonomous-soc--implementation-status-report">PASR Autonomous SOC — Implementation Status Report</h1>
+<p><strong>Document type:</strong> Technical Status / Maturity Report
+<strong>Repo:</strong> <code>PASR-Autonomous-SOC</code> (local, <code>C:\Users\abdok\PASR-Autonomous-SOC</code>)
+<strong>Date of inspection:</strong> 2026-09-01
+<strong>Status legend used throughout:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Marker</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✅ <strong>IMPLEMENTED</strong></td>
+<td>Working, exercised end-to-end, verified live</td>
+</tr>
+<tr>
+<td>🟡 <strong>PARTIALLY IMPLEMENTED</strong></td>
+<td>Code present but limited vs. architecture-book intent</td>
+</tr>
+<tr>
+<td>⏳ <strong>PLANNED</strong></td>
+<td>Described in the Architecture Book, not started</td>
+</tr>
+<tr>
+<td>❌ <strong>NOT IMPLEMENTED</strong></td>
+<td>Absent</td>
+</tr>
+<tr>
+<td>🔮 <strong>FUTURE</strong></td>
+<td>Out of scope / explicitly deferred</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Methodology note.</strong> The <strong>Architecture Book v2.0</strong> (<code>PASR_Architecture_Book.md</code> in Downloads/Documents) is the <em>design spec</em>. This report <strong>never conflates</strong> what the book <em>plans</em> with what the repo <em>currently does</em>. Every claim below is marked IMPLEMENTED / PARTIALLY / PLANNED / NOT / FUTURE and backed by inspected source files, live running services, and real database rows. Architecture-book design is always tagged <code>PLANNED</code> unless the code demonstrably implements it.</p>
+</blockquote>
+<hr>
+<h2 id="0-executive-summary">0. Executive Summary</h2>
+<p>PASR is a <strong>self-defending web platform</strong> specified in the Architecture Book v2.0 as a closed OODA control loop (Observe → Orient → Decide → Act → Validate → Feedback). The current repo implements a <strong>working autonomous SOC decision pipeline</strong> (<code>soc-ai-engine</code>) and a <strong>live React dashboard</strong> (<code>fullstack-dashboard</code>), both proven running at the time of inspection.</p>
+<p><strong>What is real and verified:</strong></p>
+<ul>
+<li>A <strong>7-agent AI pipeline + guardrail gate + persistence</strong> (<code>orchestrator/pipeline.py</code>) drives end-to-end log → analysis → decision → rule → explanation → knowledge flow, backed by local <strong>Ollama <code>qwen2.5:7b</code></strong>.</li>
+<li>A <strong>FastAPI backend</strong> (<code>:8000</code>) exposing both legacy (<code>/analyze-log</code>, <code>/incidents</code>) and namespaced (<code>/api/*</code>) REST endpoints, plus live infrastructure health checks against SQLite and Ollama.</li>
+<li>A <strong>React + Vite frontend</strong> (<code>localhost:5174</code>) with five working views (Dashboard, Incidents, Response Actions, AI Agents, Infrastructure), a Vite <code>/api</code> proxy, and live polling/notification.</li>
+<li><strong>Real data:</strong> <code>soc_threats.db</code> holds <strong>33 incidents</strong> and <strong>26 simulated actions</strong>; health endpoint reports <em>healthy / operational / online / active</em>; all three services (backend:8000, frontend:5174, Ollama:11434) were confirmed listening at inspection.</li>
+</ul>
+<p><strong>The dominant gap:</strong> the Architecture Book describes a <em>distributed, containerized, Zero-Trust platform</em> (reverse proxy + SOC engine + pentest engine + PostgreSQL + Redis, WebSockets, auth/RBAC, Sigma rules, self-pentesting). The repo implements the <strong>AI/Backend decisions + Dashboard slice</strong> of that vision. The <strong>Pentest engine, live reverse-proxy rule enforcement (FR4), auto-apply/rollback (M8), SOC high-volume log pipeline (FR1/FR2 full form), PostgreSQL/Redis, WebSockets, and authentication are NOT implemented.</strong> Rule &quot;application&quot; is currently <strong>simulated/logged only</strong> (never touches a proxy).</p>
+<p>The project is best characterized as <strong>AI layer (M7) largely done, Runtime closed loop (M8) partially simulated, and M2/M3/M4/M5 in lightweight local form</strong> — an excellent demonstrable vertical slice, not yet the platform described in the book.</p>
+<hr>
+<h2 id="1-architecture-book-vision-planned--reference-only">1. Architecture Book Vision (PLANNED / reference only)</h2>
+<p>The source of truth for the planned design. <strong>Full book read</strong> at <code>Downloads\PASR_Architecture_Book.md</code> (v2.0, 21 sections, 930 lines).</p>
+<p><strong>OODA loop mapped in the book</strong> (Section 1, 2, 5):
+<code>Observe (Reverse Proxy/Log pipeline) → Orient (SOC detection/threat intel) → Decide (AI multi-agent → Decision Engine guardrails) → Act (Runtime Configuration applies rules) → Validate (Pentest engine re-attacks) → Feedback (back to SOC for learning)</code>.</p>
+<p><strong>Planned architecture layers</strong> (Section 2):
+<code>Internet → ReverseProxy/WAF → Log Pipeline → SOC Detection → Threat Intel → AI Multi-Agent → Decision Engine → Runtime Config → Dashboard → Database → Pentest Engine → Validation → Feedback</code>.</p>
+<p><strong>Functional Requirements (FR1–FR7):</strong></p>
+<ul>
+<li><strong>FR1</strong> Proxy must log and optionally mirror all traffic.</li>
+<li><strong>FR2</strong> SOC engine parses, detects, scores, alerts.</li>
+<li><strong>FR3</strong> AI agents triage, correlate, decide, explain.</li>
+<li><strong>FR4</strong> Runtime engine applies/rolls back proxy rules from AI decisions.</li>
+<li><strong>FR5</strong> Pentest engine validates mitigations against the same vector.</li>
+<li><strong>FR6</strong> Dashboard shows live alerts, timeline, health, overrides.</li>
+<li><strong>FR7</strong> All actions auditable.</li>
+</ul>
+<p><strong>Non-Functional Requirements (NFR1–NFR6):</strong> performance (NFR1 &lt;15ms p95 proxy overhead), scalability (NFR2), availability/fail-open (NFR3), Zero Trust (NFR4), immutable audit (NFR5), explainable AI (NFR6).</p>
+<blockquote>
+<p>These are the <strong>target</strong>. Mapping to current status appears throughout this document and in the RTM (Section 20).</p>
+</blockquote>
+<hr>
+<h2 id="2-high-level-architecture--planned-vs-implemented">2. High-Level Architecture — Planned vs. Implemented</h2>
+<p><strong>Planned (Architecture Book §2):</strong>
+<code>Internet → ReverseProxy/WAF → Log Pipeline (Vector/Filebeat→Kafka/Redis Streams) → SOC Engine → Threat Intel → AI Multi-Agent → Decision Engine → Runtime Config → Proxy/Back → Dashboard + PostgreSQL/Redis</code>.</p>
+<p><strong>Implemented (actual repo):</strong></p>
+<pre class="hljs"><code><div>Raw log line (HTTP POST)
+      │
+      ▼
+[FastAPI backend :8000]
+      │  /analyze-log  or  /api/analyze-log
+      ▼
+orchestrator/pipeline.py  (run_soc_pipeline)
+  A1 Attack Analyzer ──► A2 Threat Correlator ──► A3 Risk Assessment
+   ──► A4 Decision Agent ──► A5 Rule Generator ──► A6 Explanation ──► A7 Knowledge
+      │                                                          │
+      ▼                                                          ▼
+   guardrails.validate_action()                       memory.save_event()
+      │                                                 │
+      ▼                                                 ▼
+   final_action (BLOCK/ALERT/ALERT_HUMAN_ANALYST)   SQLite soc_threats.db
+</div></code></pre>
+<p><strong>Status by tier:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Book component</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reverse Proxy / WAF (NGINX/Envoy + ModSecurity)</td>
+<td>❌ NOT</td>
+<td>No proxy container; Vite dev proxy only</td>
+</tr>
+<tr>
+<td>Log Pipeline (Vector/Filebeat → Kafka/Redis Streams)</td>
+<td>❌ NOT</td>
+<td>Logs entered as single POST lines</td>
+</tr>
+<tr>
+<td>SOC Detection Engine (parse/normalize/Sigma/ML)</td>
+<td>🟡 PARTIAL</td>
+<td>Heuristic/LLM classification inline (no Sigma/ML engine)</td>
+</tr>
+<tr>
+<td>Threat Intelligence (IOC/CVE enrichment)</td>
+<td>❌ NOT</td>
+<td>No external feeds (ATT&amp;CK ID is LLM-inferred)</td>
+</tr>
+<tr>
+<td>AI Multi-Agent layer (7 agents)</td>
+<td>✅ IMPLEMENTED</td>
+<td>Full 7-agent pipeline, schema-validated</td>
+</tr>
+<tr>
+<td>Decision Engine (policy guardrails)</td>
+<td>✅ IMPLEMENTED</td>
+<td><code>guardrails.py</code>, deterministic rules</td>
+</tr>
+<tr>
+<td>Runtime Configuration (apply/rollback to proxy)</td>
+<td>🟡 PARTIAL</td>
+<td>Rules generated but <strong>simulated</strong> only</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>✅ IMPLEMENTED (local)</td>
+<td>React+Vite, live data</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>🟡 PARTIAL</td>
+<td><strong>SQLite</strong> (not PostgreSQL/Redis)</td>
+</tr>
+<tr>
+<td>Pentest Engine / Validation</td>
+<td>❌ NOT</td>
+<td>Absent; <code>red-team/</code> empty placeholder</td>
+</tr>
+<tr>
+<td>Feedback / Learning loop</td>
+<td>🟡 PARTIAL</td>
+<td>History-correlation via SQLite memory; no embedding store</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-mermaid"><div class="mermaid">flowchart TB
+    C[User / Analyst] -->|POST /api/analyze-log| BE[FastAPI :8000]
+    C2[Frontend localhost:5174] <-->|/api proxy| BE
+    BE --> P[orchestrator/pipeline.py]
+    P --> A1[Attack Analyzer]
+    A1 --> A2[Threat Correlator]
+    A2 --> A3[Risk Assessment]
+    A3 --> A4[Decision Agent]
+    A4 --> A5[Rule Generator]
+    A5 --> A6[Explanation Agent]
+    A6 --> A7[Knowledge Agent]
+    A7 --> GR[Guardrails validate_action]
+    GR -->|approved/override| MEM[SQLite soc_threats.db]
+    MEM --> Ollama[(Ollama qwen2.5:7b :11434)]
+    A1 & A2 & A3 & A4 & A5 & A6 & A7 -.->|ollama.chat| Ollama
+</div></code></pre>
+<hr>
+<h2 id="3-repository-structure--actual">3. Repository Structure — Actual</h2>
+<pre class="hljs"><code><div>PASR-Autonomous-SOC/
+├── README.md                  (1 line, placeholder)
+├── .gitignore                 (empty)
+├── soc_threats.db             (0 bytes — empty placeholder at root)
+├── soc-ai-engine.zip          (archive)
+├── fullstack-dashboard.zip    (archive)
+├── database-mcp/              (only .gitkeep — empty placeholder)
+├── red-team/                  (only .gitkeep — empty placeholder)
+├── soc-ai-engine/             ← BACKEND (Python / FastAPI)
+│   ├── api.py                 FastAPI app + /api router (real live service)
+│   ├── guardrails.py          Deterministic action safety gate
+│   ├── main_agent.py          LEGACY 2-agent pipeline (superseded)
+│   ├── agents.py              LEGACY triage/threat-analysis (superseded)
+│   ├── database.py            LEGACY SQLite helper (superseded by memory/)
+│   ├── requirements.txt       ollama, mcp, pydantic, requests
+│   ├── soc_threats.db         REAL database (33 incidents, 26 sim actions)
+│   ├── agents/                ★ 7 AI agents
+│   │   ├── attack_analyzer.py
+│   │   ├── threat_correlator.py
+│   │   ├── risk_assessment.py
+│   │   ├── decision_agent.py
+│   │   ├── rule_generator.py
+│   │   ├── explanation_agent.py
+│   │   └── knowledge_agent.py
+│   ├── schemas/agent_outputs.py   Pydantic contracts for all 7 agents
+│   ├── orchestrator/pipeline.py   ★ run_soc_pipeline() — the orchestration
+│   ├── config/llm.py              get_llm() → Ollama wrapper (MODEL_NAME qwen2.5:7b)
+│   ├── config/settings.py         EMPTY
+│   ├── memory/memory.py           ★ SQLite layer + schema + infra/agent metadata
+│   ├── tests/                     (empty)
+│   └── .venv/                     (present but imports run from Global Python312)
+└── fullstack-dashboard/       ← FRONTEND (React + Vite)
+    ├── package.json           react 19, vite 8, lucide-react; scripts dev/build/lint/preview
+    ├── vite.config.js         port 5174, /api → 127.0.0.1:8000, 6-min proxy timeout
+    ├── index.html / eslint.config.js
+    └── src/
+        ├── App.jsx            routing + analyze + backend health polling
+        ├── main.jsx
+        ├── services/api.js    ★ REST client (all /api/* endpoints)
+        ├── pages/             Dashboard, Incidents, ResponseActions, AIAgents, Infrastructure
+        └── components/        Sidebar, Header, StatCard, Pipeline, IncidentTable, IncidentModal, StatusBadge
+</div></code></pre>
+<p><strong>Two dead-code / legacy modules exist and are NOT used by the live pipeline:</strong> <code>main_agent.py</code> + <code>agents.py</code> (a 2-agent &quot;triage → threat-analysis&quot; prototype) and <code>database.py</code>. The live service imports <code>orchestrator.pipeline</code> and <code>memory.memory</code>. These represent an earlier iteration still present in the repo.</p>
+<p><strong>Empty placeholders:</strong> <code>red-team/</code>, <code>database-mcp/</code>, <code>tests/</code>, root <code>README.md</code>, root <code>soc_threats.db</code>.</p>
+<hr>
+<h2 id="4-runtime-environment-verified-live-at-inspection">4. Runtime Environment (verified live at inspection)</h2>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Tech</th>
+<th>Address</th>
+<th>Process / Port</th>
+<th>Status @ check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend API</td>
+<td>FastAPI (uvicorn)</td>
+<td>http://127.0.0.1:8000</td>
+<td>PID 21092</td>
+<td><strong>Healthy / operational / online / active</strong></td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>Vite (dev)</td>
+<td>http://localhost:5174</td>
+<td>PID 23824 (node vite)</td>
+<td>Listening</td>
+</tr>
+<tr>
+<td>AI Model</td>
+<td>Ollama</td>
+<td>http://127.0.0.1:11434</td>
+<td>PID 20724</td>
+<td><strong>online</strong>, <code>qwen2.5:7b</code></td>
+</tr>
+<tr>
+<td>Database</td>
+<td>SQLite</td>
+<td><code>soc-ai-engine/soc_threats.db</code></td>
+<td>—</td>
+<td>available, 33 rows</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Actual <code>/api/health</code> response at inspection:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-punctuation">{</span><span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;healthy&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;api&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;online&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;database&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;available&quot;</span><span class="hljs-punctuation">,</span>
+ <span class="hljs-attr">&quot;ai_pipeline&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;operational&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;ai_model&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;online&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;guardrails&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;active&quot;</span><span class="hljs-punctuation">,</span>
+ <span class="hljs-attr">&quot;checked_at&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;2026-09-01 22:40:06&quot;</span><span class="hljs-punctuation">}</span>
+</div></code></pre>
+<p><strong>Environment note (important):</strong> the project <code>.venv</code> (<code>soc-ai-engine/.venv</code>) is essentially empty (only <code>pip</code>). The running backend relies on the <strong>Global Python 3.12</strong> (<code>C:\Users\abdok\AppData\Local\Programs\Python\Python312</code>) install, which contains <code>fastapi 0.141.1</code>, <code>uvicorn 0.52.4</code>, <code>pydantic 2.13.5</code>, <code>starlette 1.6.0</code>, <code>ollama 0.6.2</code>. The declared <code>requirements.txt</code> (<code>ollama, mcp, pydantic, requests</code>) <strong>omits <code>fastapi</code>/<code>uvicorn</code></strong> and does not reflect the actual runtime deps.</p>
+<hr>
+<h2 id="5-backend--implemented-capability">5. Backend — Implemented Capability</h2>
+<p><strong>FastAPI app</strong> (<code>api.py</code>):</p>
+<ul>
+<li><code>title=&quot;PASR Autonomous SOC API&quot;</code>, <code>version=&quot;1.0.0&quot;</code>.</li>
+<li>Root <code>GET /</code> returns service/status/version.</li>
+<li><code>GET /health</code> — real infra health via <code>asyncio.to_thread(_health_summary)</code>.</li>
+<li><code>POST /analyze-log</code> — legacy root endpoint → runs pipeline.</li>
+<li><code>POST /api/analyze-log</code> — namespaced pipeline run.</li>
+<li><code>GET /api/incidents</code>, <code>GET /api/incidents/recent</code>, <code>GET /api/incidents/{source_ip}</code> — event queries.</li>
+<li><code>GET /api/stats</code>, <code>GET /api/dashboard</code>, <code>GET /api/response-actions</code>.</li>
+<li><code>GET /api/agents</code>, <code>GET /api/infrastructure</code>, <code>GET /api/health</code>.</li>
+<li><code>GET /api/actions/simulated</code>, <code>POST /api/actions/{incident_id}/simulate</code> — <strong>simulated (log-only) action execution</strong>.</li>
+<li><code>GET /api</code> (router root) — DB availability probe.</li>
+<li>Legacy <code>GET /incidents</code>.</li>
+</ul>
+<p><strong>Non-blocking design:</strong> long pipelines run in worker threads (<code>asyncio.to_thread</code>), keeping <code>/health</code>, dashboard, and incidents responsive during multi-minute AI runs — matches an NFR3-style concern (fail/keep serving) at the HTTP layer.</p>
+<p><strong>Real health probes</strong> (<code>memory/memory.py</code>): live SQLite <code>SELECT 1</code>, live <code>http://127.0.0.1:11434/api/tags</code> check, backend reachability → maps to <code>operational / degraded / offline</code>.</p>
+<hr>
+<h2 id="6-ai-multi-agent-pipeline--implemented--m7-core">6. AI Multi-Agent Pipeline (✅ IMPLEMENTED — M7 core)</h2>
+<p>Sequential 8-stage flow in <code>orchestrator/pipeline.py:13</code> <code>run_soc_pipeline(raw_log)</code>. Each agent calls <strong>Ollama <code>qwen2.5:7b</code> with <code>format=&quot;json&quot;</code></strong> and validates through Pydantic schemas (<code>schemas/agent_outputs.py</code>).</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Agent (file)</th>
+<th>Input</th>
+<th>Output / Schema</th>
+<th>Book match</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Attack Analyzer (<code>agents/attack_analyzer.py</code>)</td>
+<td>raw log</td>
+<td><code>AttackAnalyzerOutput</code>: source_ip, attack_type, technique_id, confidence(0–1), indicators[], summary</td>
+<td>✅ A1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Threat Correlator (<code>agents/threat_correlator.py</code>)</td>
+<td>attack + SQLite history</td>
+<td><code>ThreatCorrelatorOutput</code>: related_event_count, correlation_status (RELATED/NO_MATCH/SUSPICIOUS_PATTERN), related_ips[], related_attack_types[], pattern, confidence</td>
+<td>✅ A2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Risk Assessment (<code>agents/risk_assessment.py</code>)</td>
+<td>attack + correlation</td>
+<td><code>RiskAssessmentOutput</code>: severity, impact, risk_score(0–100), confidence, factors[], summary</td>
+<td>✅ A3</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Decision Agent (<code>agents/decision_agent.py</code>)</td>
+<td>attack + correlation + risk</td>
+<td><code>DecisionAgentOutput</code>: recommended_action (ALERT/BLOCK/THROTTLE/ISOLATE), decision_confidence, priority, target, reasoning</td>
+<td>✅ A4</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rule Generator (<code>agents/rule_generator.py</code>)</td>
+<td>attack + risk + decision</td>
+<td><code>RuleGeneratorOutput</code>: rule_type, target_ip, protocol, direction, parameters{}, rule_description, requires_approval. <strong>Generates only, does not execute</strong></td>
+<td>✅ A5</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Explanation Agent (<code>agents/explanation_agent.py</code>)</td>
+<td>all prior</td>
+<td><code>ExplanationAgentOutput</code>: explanation, key_evidence[], risk_factors[], decision_summary, analyst_recommendation. Includes robust JSON extraction + Qwen-nested-object normalization</td>
+<td>✅ A6</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Knowledge Agent (<code>agents/knowledge_agent.py</code>)</td>
+<td>all prior</td>
+<td><code>KnowledgeAgentOutput</code>: knowledge_id (KNOW-XXXX), event_type, source_ip, validated_action, validation_status, confidence, lesson, reusable_pattern</td>
+<td>✅ A7</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Guardrails (<code>guardrails.py</code>)</td>
+<td>proposed action + IP</td>
+<td><code>{&quot;approved&quot;, &quot;reason&quot;, &quot;override_action&quot;}</code> — deterministic policy gate</td>
+<td>✅ Decision Engine (safety)</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Memory (<code>memory/memory.py</code>)</td>
+<td>full result</td>
+<td>persists to SQLite, returns history for correlation</td>
+<td>✅ Shared memory (SQLite sub-form)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Orchestration-level behavior:</strong></p>
+<ul>
+<li>Memory retrieval before Agent 2 (<code>get_events_by_source_ip</code>) — Threat Correlator links current event to prior activity for the same IP.</li>
+<li>All 7 agent outputs + guardrail saved as JSON <code>details</code> into <code>threat_logs</code>.</li>
+<li>Final <code>action_taken</code> = <code>guardrail_result[&quot;override_action&quot;]</code> (post-guardrail).</li>
+</ul>
+<p><strong>Model:</strong> <code>config/llm.py</code> <code>MODEL_NAME = &quot;qwen2.5:7b&quot;</code>; <code>config/settings.py</code> is empty (no env-config abstraction yet).</p>
+<hr>
+<h2 id="7-ai-agents--detail--real-output">7. AI Agents — Detail &amp; Real Output</h2>
+<p><strong>Agent #5 Rule Generator</strong> (real pipeline producer) — generates a concrete runtime rule but <strong>does not execute</strong>:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># agents/rule_generator.py — LoA: generates only, never executes</span>
+result = RuleGeneratorOutput.model_validate(data)
+<span class="hljs-comment"># normalizes camelCase requiresApproval/targetIP that the LLM may return</span>
+</div></code></pre>
+<p><strong>Agent #6 Explanation robustness</strong> — handles a known Qwen failure mode where the whole JSON is wrapped inside an <code>explanation</code> object; normalizes to flat fields (<code>_normalize_explanation_output</code>).</p>
+<p><strong>Real stored output example</strong> (latest incident id=33, PORT_SCAN <code>198.51.100.22</code>):</p>
+<pre class="hljs"><code><div>attack<span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">&quot;attack_type&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;PORT_SCAN&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;technique_id&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;T1016&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;confidence&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-number">1.0</span><span class="hljs-punctuation">,</span>
+         <span class="hljs-attr">&quot;indicators&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">[</span><span class="hljs-string">&quot;Source IP: 198.51.100.22&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-string">&quot;Target IP: 10.10.10.5&quot;</span><span class="hljs-punctuation">,</span>
+                       <span class="hljs-string">&quot;Scanned Ports: 22, 80, 443, 3306, 8080&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-string">&quot;SYN Probes: 500 in 10 seconds&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">}</span>
+decision<span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">&quot;recommended_action&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;BLOCK&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;decision_confidence&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-number">1.0</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;priority&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;MEDIUM&quot;</span><span class="hljs-punctuation">,</span>
+           <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;198.51.100.22&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;reasoning&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;...blocking the source IP is a justified and appropriate action...&quot;</span><span class="hljs-punctuation">}</span>
+guardrail<span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">&quot;approved&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;override_action&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;BLOCK&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;reason&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;Action passed security guardrails.&quot;</span><span class="hljs-punctuation">}</span>
+knowledge<span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">&quot;knowledge_id&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;KNOW-1094F82B&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;validated_action&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;BLOCK&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;validation_status&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;APPROVED&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;confidence&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-number">1.0</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;lesson&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;For high-volume SYN probes... consider blocking the source IP...&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;reusable_pattern&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;SYN probes in 10 seconds targeting common ports... can indicate a port scan attack.&quot;</span><span class="hljs-punctuation">}</span>
+</div></code></pre>
+<p>(Metadata only — no outputs were fabricated for this report; rule/explanation/correlation for id=33 are present in the DB but not reprinted fully here.)</p>
+<hr>
+<h2 id="8-guardrails--decision-engine--implemented">8. Guardrails / Decision Engine (✅ IMPLEMENTED)</h2>
+<p><code>guardrails.py</code> — the deterministic safety gate (book §2/§9 Decision Engine &quot;policy side&quot;):</p>
+<ul>
+<li><strong>Protected/IP guardrail:</strong> <code>CRITICAL_INFRASTRUCTURE_IPS = {&quot;192.168.1.1&quot;,&quot;192.168.1.10&quot;,&quot;10.0.0.1&quot;}</code>.</li>
+<li><strong>High-risk actions:</strong> <code>HIGH_RISK_ACTIONS = {&quot;SHUTDOWN_INTERFACE&quot;,&quot;REBOOT_FIREWALL&quot;,&quot;ISOLATE_NETWORK&quot;}</code>.</li>
+<li><code>validate_action(action, target_ip)</code>:
+<ul>
+<li><strong>Guardrail 1:</strong> <code>BLOCK</code> / <code>BLOCK_IP</code> on a critical IP ⇒ <code>approved=False</code>, <code>override_action=&quot;ALERT_HUMAN_ANALYST&quot;</code>, reason <code>&quot;CRITICAL GUARDRAIL TRIGGERED: Cannot block critical infrastructure IP ...&quot;</code>.</li>
+<li><strong>Guardrail 2:</strong> high-risk actions require Human Approval (in-flight gate).</li>
+<li>Otherwise <code>approved=True</code>, <code>override_action=action</code>.</li>
+</ul>
+</li>
+</ul>
+<p><strong>Real evidence (DB):</strong> id=28 (SYN_FLOOD, source <code>10.0.0.1</code>, a critical IP) → final action <code>ALERT_HUMAN_ANALYST</code>, <code>guardrail_approved=0</code>, reason <code>&quot;CRITICAL GUARDRAIL TRIGGERED: Cannot block critical infrastructure IP 10.0.0.1.&quot;</code> — the guardrail demonstrably <strong>overrode a would-be block</strong>.</p>
+<blockquote>
+<p>Note on scope: this guards the <em>AI decision</em>, but because rule <strong>application is simulated</strong>, guardrail &quot;approval&quot; currently gates a logged action, not a real firewall change.</p>
+</blockquote>
+<hr>
+<h2 id="9-database--persistence--partial--sqlite-real--working">9. Database / Persistence (🟡 PARTIAL — SQLite, real + working)</h2>
+<p><strong>Live schema</strong> (<code>soc-ai-engine/soc_threats.db</code>, via <code>memory/memory.py</code> + <code>_ensure_schema</code> migration):</p>
+<ul>
+<li><code>threat_logs(id, timestamp, source_ip, attack_type, severity, action_taken, guardrail_approved, reason, details TEXT)</code></li>
+<li><code>simulated_actions(id, incident_id, action, outcome, recorded_at)</code> — <em>not</em> in the Architecture Book schema; added for safe demo.</li>
+<li><code>sqlite_sequence</code> (SQLite autoincrement).</li>
+</ul>
+<p><strong>Real data at inspection:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total incidents</td>
+<td><strong>33</strong></td>
+</tr>
+<tr>
+<td>Simulated actions logged</td>
+<td><strong>26</strong></td>
+</tr>
+<tr>
+<td>Rows with full <code>details</code> JSON</td>
+<td><strong>10</strong></td>
+</tr>
+<tr>
+<td>Action breakdown</td>
+<td>BLOCK 23, ALERT_HUMAN_ANALYST 5, ALERT 5</td>
+</tr>
+<tr>
+<td>Attack-type breakdown</td>
+<td>BRUTE_FORCE 15, SYN_FLOOD 9, OTHER 5, PORT_SCAN 3, NORMAL 1</td>
+</tr>
+<tr>
+<td>Severity breakdown</td>
+<td>MEDIUM 22, HIGH 6, LOW 5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Planned (book §12):</strong> PostgreSQL with USERS/LOGS/ALERTS/THREATS/CVES/MITRE_TECHNIQUES/RUNTIME_RULES/INCIDENTS/ATTACK_SESSIONS/RECOMMENDATIONS/RISK_SCORES/AUDIT_LOGS, UUID PKs, JSONB, append-only audit.
+<strong>Gap:</strong> PostgreSQL ❌, Redis ❌, multi-table relational model ❌. Current persistence = a <strong>single SQLite table</strong> with a <code>details</code> JSON column, satisfying auditability <em>in a lightweight sense</em> (every persisted row records who/what/when/why-in-reason) but <strong>not the book's immutable <code>AUDIT_LOGS</code></strong> (NFR5).</p>
+<p><strong>Two DB files exist:</strong> root <code>soc_threats.db</code> is 0 bytes (stray/empty); the real one is <code>soc-ai-engine/soc_threats.db</code>.</p>
+<hr>
+<h2 id="10-api-surface-map">10. API Surface (map)</h2>
+<h3 id="implemented-backend-endpoints-live-all-verified-reachable">Implemented backend endpoints (live, all verified reachable)</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Route</th>
+<th>Purpose</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/</code></td>
+<td>service banner</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health</code></td>
+<td>live health</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/analyze-log</code></td>
+<td>run pipeline (legacy)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/incidents</code></td>
+<td>recent incidents (legacy)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/health</code></td>
+<td>health (namespaced)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/analyze-log</code></td>
+<td>run pipeline</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/incidents/recent?limit=</code></td>
+<td>recent events</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/incidents/{ip}?limit=</code></td>
+<td>by source IP</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/incidents?limit=</code></td>
+<td>all events</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/stats</code></td>
+<td>aggregate stats</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/dashboard</code></td>
+<td>dashboard bundle</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/response-actions?limit=</code></td>
+<td>enriched actions</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/agents</code></td>
+<td>8-stage agent status</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/infrastructure</code></td>
+<td>infra health</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/actions/simulated</code></td>
+<td>sim log</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/actions/{id}/simulate</code></td>
+<td>record simulated action</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api</code></td>
+<td>DB availability</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="planned-book-13-apiv1---not-implemented">Planned (book §13, <code>/api/v1/*</code>) — ❌ NOT implemented</h3>
+<p><code>/api/v1/auth/login</code>, <code>/auth/refresh</code>, <code>/soc/alerts</code>, <code>/soc/alerts/{id}/ack</code>, <code>/soc/risk-scores/{id}</code>, <code>/threats</code>, <code>/pentest/sessions</code>, <code>/pentest/sessions/{id}/report</code>, <code>/runtime/rules</code>, <code>/runtime/rules/{id}/rollback</code>, <code>/incidents/{id}/close</code>, <code>/recommendations</code>, <code>WS /ws/live</code>, <code>/system/health</code>, <code>/audit</code>. <strong>None of these endpoints or the <code>/api/v1</code> versioning exist.</strong></p>
+<p><strong>Notable design differences from book:</strong> current API is <strong>unversioned</strong> (<code>/api</code> not <code>/api/v1</code>), <strong>unauthenticated</strong> (no Bearer/RBAC), and <strong>no WebSocket</strong> (polling instead). This is consistent with a local demo scope, but diverges from the book's security/API design.</p>
+<hr>
+<h2 id="11-agent-pipeline-config--status-as-served-by-apiagents">11. Agent Pipeline Config &amp; Status (as served by <code>/api/agents</code>)</h2>
+<p>8 stages are reported (7 agents + guardrails) using <code>AGENT_DEFINITIONS</code> in <code>memory/memory.py</code>. Health is <strong>derived at pipeline level</strong> (agents only run when pipeline runs):</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Agent</th>
+<th>Real status @ check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Attack Analyzer</td>
+<td>Operational</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Threat Correlator</td>
+<td>Operational</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Risk Assessment</td>
+<td>Operational</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Decision Agent</td>
+<td>Operational</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rule Generator</td>
+<td>Operational</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Explanation Agent</td>
+<td>Operational</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Knowledge Agent</td>
+<td>Operational</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Guardrails</td>
+<td>Operational</td>
+</tr>
+</tbody>
+</table>
+<p><code>last_execution</code> / <code>last_output</code> are populated from the most recent incident with full <code>details</code> (real data). Because health is pipeline-level, a downed Ollama reports the whole pipeline &quot;degraded&quot; rather than isolating one agent — acceptable for demo, not per-agent telemetry.</p>
+<hr>
+<h2 id="12-frontend--implemented--local">12. Frontend (✅ IMPLEMENTED — local)</h2>
+<p><strong>Stack:</strong> React 19, Vite 8, <code>lucide-react</code> icons (no chart library — the book's Recharts is ❌). No TypeScript (book calls for TS; repo is plain JSX). JS-only, <code>type: module</code>.</p>
+<p><strong>Views (5 of the book's many):</strong></p>
+<table>
+<thead>
+<tr>
+<th>View</th>
+<th>Book target</th>
+<th>Source</th>
+<th>API consumed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard</td>
+<td>SOC + live alerts + health</td>
+<td><code>pages/Dashboard.jsx</code></td>
+<td><code>/api/dashboard</code>, <code>/api/infrastructure</code>; analyze via <code>/api/analyze-log</code></td>
+</tr>
+<tr>
+<td>Incidents</td>
+<td>SOC alert listing</td>
+<td><code>pages/Incidents.jsx</code></td>
+<td><code>/api/incidents</code></td>
+</tr>
+<tr>
+<td>Response Actions</td>
+<td>Runtime actions (simulated)</td>
+<td><code>pages/ResponseActions.jsx</code></td>
+<td><code>/api/response-actions</code>, <code>/api/actions/simulated</code>, <code>POST simulate</code></td>
+</tr>
+<tr>
+<td>AI Agents</td>
+<td>AI pipeline view</td>
+<td><code>pages/AIAgents.jsx</code></td>
+<td><code>/api/agents</code></td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td>System Health</td>
+<td><code>pages/Infrastructure.jsx</code></td>
+<td><code>/api/infrastructure</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Not implemented frontend (book §10):</strong> Attack Timeline (full), Graphs/Charts (Recharts), Attack Graph (node/edge), Runtime View with rollback controls, WebSocket hook (polling used instead).</p>
+<p><strong>Key frontend behaviors (inspected):</strong></p>
+<ul>
+<li><strong>Live polling:</strong> Dashboard 4s, infra 5s; Incidents 5s; ResponseActions + simulation log 8s; AIAgents 5s.</li>
+<li><strong>Toast notifications</strong> for newly-detected incidents (id-deduplicated).</li>
+<li><strong>Analyze form</strong> sends raw log through the pipeline; Vite proxy timeout = 6 min; client <code>api.js</code> analyze timeout = 300000 ms (matches long AI runs).</li>
+<li><strong>backendOnline detection:</strong> polls <code>/api/stats</code> every 30s; shows a reconnect banner when offline.</li>
+<li><strong>Simulate Execute:</strong> an explicit, clearly-labeled &quot;simulated — no real-world network change&quot; action record per row.</li>
+</ul>
+<p><strong>Proxy (<code>vite.config.js</code>):</strong> <code>/api</code> → <code>http://127.0.0.1:8000</code>, <code>changeOrigin: true</code>, 6-min timeout, error logging.</p>
+<hr>
+<h2 id="13-real-test-cases-evidence-from-live-db--pipeline">13. Real Test Cases (evidence from live DB + pipeline)</h2>
+<p>All IDs below are real <code>threat_logs</code> rows (queried at inspection), demonstrating FR3/FR6 execution and the guardrail (FR-safety) path:</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>timestamp</th>
+<th>source_ip</th>
+<th>attack_type</th>
+<th>severity</th>
+<th>action_taken</th>
+<th>guardrail</th>
+<th>Evidence of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>27</td>
+<td>2026-09-01 18:18</td>
+<td>172.16.0.99</td>
+<td>BRUTE_FORCE</td>
+<td>MEDIUM</td>
+<td><strong>BLOCK</strong></td>
+<td>approved=1</td>
+<td>FR3 decide→act (log), FR4 simulated</td>
+</tr>
+<tr>
+<td>28</td>
+<td>2026-09-01 18:36</td>
+<td>10.0.0.1</td>
+<td>SYN_FLOOD</td>
+<td>HIGH</td>
+<td><strong>ALERT_HUMAN_ANALYST</strong></td>
+<td>approved=0</td>
+<td><strong>Guardrail override on critical IP</strong></td>
+</tr>
+<tr>
+<td>29</td>
+<td>2026-09-01 18:50</td>
+<td>192.168.100.44</td>
+<td>PORT_SCAN</td>
+<td>MEDIUM</td>
+<td>BLOCK</td>
+<td>approved=1</td>
+<td>detection→decision</td>
+</tr>
+<tr>
+<td>30</td>
+<td>2026-09-01 19:05</td>
+<td>(None)</td>
+<td>OTHER</td>
+<td>LOW</td>
+<td>ALERT</td>
+<td>approved=1</td>
+<td>low-confidence → alert</td>
+</tr>
+<tr>
+<td>31</td>
+<td>2026-09-01 19:11</td>
+<td>192.168.200.10</td>
+<td>OTHER</td>
+<td>MEDIUM</td>
+<td>BLOCK</td>
+<td>approved=1</td>
+<td>detection→decision</td>
+</tr>
+<tr>
+<td>32</td>
+<td>2026-09-01 19:15</td>
+<td>172.16.0.77</td>
+<td>BRUTE_FORCE</td>
+<td>MEDIUM</td>
+<td>BLOCK</td>
+<td>approved=1</td>
+<td>detection→decision</td>
+</tr>
+<tr>
+<td>33</td>
+<td>2026-09-01 19:19</td>
+<td>198.51.100.22</td>
+<td>PORT_SCAN</td>
+<td>MEDIUM</td>
+<td><strong>BLOCK</strong></td>
+<td>approved=1</td>
+<td>latest; full details present; <strong>T1016</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Also confirmed: repeated-source correlation (172.16.0.99 appears twice → Threat Correlator sees history), 26 simulated executions recorded. NORMAL=1 and OTHER=5 samples exercise the &quot;normal/other&quot; classification branch.</p>
+<hr>
+<h2 id="14-api--agent-configuration--file-inventory">14. API / Agent Configuration &amp; File Inventory</h2>
+<p><strong>Backend files &amp; roles</strong> (all inspected):</p>
+<ul>
+<li><code>api.py</code> — HTTP layer + <code>/api</code> router.</li>
+<li><code>orchestrator/pipeline.py</code> — orchestration.</li>
+<li><code>agents/{7 files}</code> — the agents.</li>
+<li><code>schemas/agent_outputs.py</code> — contracts.</li>
+<li><code>guardrails.py</code> — the gate.</li>
+<li><code>config/llm.py</code> — model wiring; <code>config/settings.py</code> empty.</li>
+<li><code>memory/memory.py</code> — persistence + infra/agent metadata.</li>
+<li><code>main_agent.py</code>, <code>agents.py</code>, <code>database.py</code> — <strong>legacy, unused by live pipeline</strong>.</li>
+<li><code>tests/</code> — empty.</li>
+</ul>
+<p><strong>Frontend files:</strong> <code>src/pages/{5}</code>, <code>src/components/{7}</code>, <code>src/services/api.js</code>, plus config files (<code>vite.config.js</code>, <code>eslint.config.js</code>, <code>package.json</code>, <code>index.html</code>).</p>
+<p><strong>Placeholders:</strong> <code>database-mcp/</code> (.gitkeep), <code>red-team/</code> (.gitkeep) — both empty.</p>
+<hr>
+<h2 id="15-cov--planned-vs-implemented-gap-summary-fr-level">15. cov / planned-vs-implemented Gap Summary (FR level)</h2>
+<table>
+<thead>
+<tr>
+<th>FR</th>
+<th>Requirement</th>
+<th>Status</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR1</td>
+<td>Proxy logs/mirrors all traffic</td>
+<td>❌ NOT</td>
+<td>no reverse proxy</td>
+</tr>
+<tr>
+<td>FR2</td>
+<td>SOC parses/detects/scores/alerts</td>
+<td>🟡 PARTIAL</td>
+<td>inline LLM analysis; no Sigma/ML engine</td>
+</tr>
+<tr>
+<td>FR3</td>
+<td>AI triage/correlate/decide/explain</td>
+<td>✅ IMPLEMENTED</td>
+<td>7-agent pipeline</td>
+</tr>
+<tr>
+<td>FR4</td>
+<td>Runtime apply/rollback rules</td>
+<td>🟡 PARTIAL</td>
+<td>rules <strong>generated + simulated</strong>, never applied to proxy</td>
+</tr>
+<tr>
+<td>FR5</td>
+<td>Pentest validates mitigations</td>
+<td>❌ NOT</td>
+<td>no pentest engine</td>
+</tr>
+<tr>
+<td>FR6</td>
+<td>Dashboard live + overrides</td>
+<td>🟡 PARTIAL</td>
+<td>live data ✅; <strong>override = simulated execution only</strong>, no real runtime control</td>
+</tr>
+<tr>
+<td>FR7</td>
+<td>All actions auditable</td>
+<td>🟡 PARTIAL</td>
+<td>persisted reason/log; <strong>no immutable AUDIT_LOGS</strong> table</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>NFR</th>
+<th>Requirement</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR1</td>
+<td>Proxy overhead &lt; 15ms p95</td>
+<td>❌ NOT</td>
+<td>no proxy; no load test</td>
+</tr>
+<tr>
+<td>NFR2</td>
+<td>Horizontal scaling</td>
+<td>❌ NOT</td>
+<td>single-process local</td>
+</tr>
+<tr>
+<td>NFR3</td>
+<td>Fail-open if SOC/AI down</td>
+<td>❌ NOT tested</td>
+<td>async HTTP stays responsive; no proxy path</td>
+</tr>
+<tr>
+<td>NFR4</td>
+<td>Zero Trust internal</td>
+<td>❌ NOT</td>
+<td>single-host, no containers, no service auth</td>
+</tr>
+<tr>
+<td>NFR5</td>
+<td>Immutable audit log</td>
+<td>🟡 PARTIAL</td>
+<td>append-only by design but no enforced DB role</td>
+</tr>
+<tr>
+<td>NFR6</td>
+<td>Explainable AI</td>
+<td>✅ IMPLEMENTED</td>
+<td>every decision gets explanation + evidence + recommendation</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="16-security-maturity-vs-book-16">16. Security Maturity (vs. book §16)</h2>
+<p><strong>Implemented:</strong> Pydantic input schemas on all endpoints; deterministic guardrails that veto harmful AI actions on protected IPs; non-destructive simulated actions (never touch real infra).</p>
+<p><strong>NOT implemented (book):</strong> JWT/OAuth2 auth ❌, RBAC (Admin/Analyst/Viewer) ❌, MFA ❌, TLS reverse proxy ❌, rate limiting ❌, Zero-Trust service tokens ❌, container security (non-root/read-only) ❌, secrets vault ❌, immutable audit table ❌.</p>
+<p><strong>Positive real-world guardrail evidence:</strong> incident id=28 proves the protected-IP gate blocks a would-be <code>BLOCK</code> and re-routes to <code>ALERT_HUMAN_ANALYST</code>.</p>
+<hr>
+<h2 id="17-planned-vs-actual-datainfra-components-map">17. Planned vs. Actual Data/Infra Components (map)</h2>
+<table>
+<thead>
+<tr>
+<th>Book component</th>
+<th>Book tech</th>
+<th>Actual</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DB</td>
+<td>PostgreSQL</td>
+<td>SQLite</td>
+<td>❌ substituted</td>
+</tr>
+<tr>
+<td>Cache/pub-sub</td>
+<td>Redis</td>
+<td>none</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Reverse proxy</td>
+<td>NGINX/Envoy</td>
+<td>Vite proxy only</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>SOC engine service</td>
+<td>separate container</td>
+<td>inline agent</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Pentest engine</td>
+<td>container</td>
+<td>empty <code>red-team/</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td>AI agents</td>
+<td>separate <code>ai-agents</code></td>
+<td><code>soc-ai-engine/agents</code></td>
+<td>🟡 bundled (not separate service)</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>React+TS+Vite</td>
+<td>React+JS+Vite</td>
+<td>🟡</td>
+</tr>
+<tr>
+<td>Orchestration</td>
+<td>LangGraph/CrewAI</td>
+<td>hand-rolled sequential</td>
+<td>🟡</td>
+</tr>
+<tr>
+<td>LLM</td>
+<td>local or API</td>
+<td>local Ollama qwen2.5:7b</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="18-maturity-assessment">18. Maturity Assessment</h2>
+<pre class="hljs"><code><div>Detection (FR2)        █████░░░░░  ← heuristic/LLM, no Sigma/ML
+AI Decisioning (FR3)   █████████░  ← full 7-agent + schema validation
+Guardrail safety       █████████░  ← deterministic protected-IP gate
+Runtime apply (FR4)    ██░░░░░░░░  ← generation + simulation only
+Validation (FR5)       █░░░░░░░░░  ← absent
+Dashboard (FR6)        ███████░░░  ← live + rich, but polling not WS
+Auditability (FR7/5)   ████░░░░░░  ← persisted reason, no immutable table
+Platform/deploy        ██░░░░░░░░  ← local single-host, no containers
+Security/auth          ██░░░░░░░░  ← Pydantic+guardrails, no auth/RBAC/TLS
+</div></code></pre>
+<p><strong>Overall:</strong> a <strong>strong, working SOC-decision vertical slice</strong> (~M7 AI core done, M8 partially simulated). The platform-scale pillars (containers/proxy/pentest/Postgres/Redis/WS/auth) are future work.</p>
+<hr>
+<h2 id="19-backlog-prioritized">19. Backlog (prioritized)</h2>
+<p><strong>P0 — close the loop safely (blocking for the book's vision):</strong></p>
+<ol>
+<li>Implement a real <strong>rule repository + apply/rollback</strong> against a reverse proxy (NGINX/Envoy) with config-test before reload — converts FR4 from simulated to real. Add a <strong>kill-switch</strong> (book M8 risk).</li>
+<li>Add <strong>authenticated RBAC</strong> (JWT/OAuth2, Admin/Analyst/Viewer) and version the API (<code>/api/v1</code>).</li>
+<li>Introduce <strong>immutable <code>audit_logs</code></strong> table + append-only enforcement → picks up FR7/NFR5.</li>
+</ol>
+<p><strong>P1 — validation &amp; reliability:</strong>
+4. Stand up the <strong>Pentest/validation engine</strong> (start with attack-replay of a recorded vector; enforce allow-list) → FR5.
+5. Move persistence to <strong>PostgreSQL</strong> (+ Redis for hot alerts/pub-sub) → aligns §12/§15.
+6. Add a <strong>log intake</strong> path (bulk/stream, Sigma-style rules + IOC) to strengthen FR2 beyond single-line LLM triage.</p>
+<p><strong>P2 — observability &amp; UX:</strong>
+7. Add <strong>WebSocket <code>/ws/live</code></strong> for sub-second alert delivery (currently 4s polling) → FR6/NFR1-style latency.
+8. Add <strong>Attack Timeline + Charts (Recharts) + Attack Graph</strong> views.
+9. Extract <strong>config/settings.py</strong> (model, ports, endpoints) and fix <code>requirements.txt</code> (add <code>fastapi</code>, <code>uvicorn</code>).
+10. <strong>Tests:</strong> populate empty <code>tests/</code> (unit + contract + E2E), covering the 7-agent schema validation and guardrail paths (book TCs).</p>
+<p><strong>P3 — hardening/research:</strong>
+11. Containerize (Docker per service, health checks, <code>pasr-net</code>), Zero-Trust networking, non-root.
+12. MTTM/metrics + benchmark dataset evaluation (M10).</p>
+<hr>
+<h2 id="20-requirements-traceability-rtm--current-status">20. Requirements Traceability (RTM) — Current Status</h2>
+<table>
+<thead>
+<tr>
+<th>Req</th>
+<th>Architecture component (book)</th>
+<th>Actual</th>
+<th>Status</th>
+<th>Verification evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR1</td>
+<td>Reverse proxy + log pipeline</td>
+<td>none</td>
+<td>❌ NOT</td>
+<td>no proxy/config</td>
+</tr>
+<tr>
+<td>FR2</td>
+<td>SOC engine</td>
+<td>inline LLM classify</td>
+<td>🟡 PARTIAL</td>
+<td>DB incidents BLOCK/ALERT rows</td>
+</tr>
+<tr>
+<td>FR3</td>
+<td>AI multi-agent</td>
+<td><code>orchestrator/pipeline.py</code></td>
+<td>✅ IMPLEMENTED</td>
+<td>33 incidents, full <code>details</code> JSON, schema-validated</td>
+</tr>
+<tr>
+<td>FR4</td>
+<td>Runtime engine apply/rollback</td>
+<td>generation + simulated</td>
+<td>🟡 PARTIAL</td>
+<td><code>actions/simulate</code> logs only</td>
+</tr>
+<tr>
+<td>FR5</td>
+<td>Pentest/validation engine</td>
+<td>none</td>
+<td>❌ NOT</td>
+<td><code>red-team/</code> empty</td>
+</tr>
+<tr>
+<td>FR6</td>
+<td>Dashboard live + overrides</td>
+<td>Dashboard + polling + simulate</td>
+<td>🟡 PARTIAL</td>
+<td>live /api responses</td>
+</tr>
+<tr>
+<td>FR7</td>
+<td>Audit logs</td>
+<td>persisted <code>threat_logs</code> + <code>simulated_actions</code></td>
+<td>🟡 PARTIAL</td>
+<td>rows present; no immutable table</td>
+</tr>
+<tr>
+<td>NFR1</td>
+<td>proxy overhead &lt;15ms</td>
+<td>n/a</td>
+<td>❌ NOT</td>
+<td>no proxy</td>
+</tr>
+<tr>
+<td>NFR3</td>
+<td>graceful degradation</td>
+<td>async non-blocking HTTP</td>
+<td>🟡 PARTIAL</td>
+<td>worker-thread pipelines</td>
+</tr>
+<tr>
+<td>NFR4</td>
+<td>Zero Trust</td>
+<td>none</td>
+<td>❌ NOT</td>
+<td>single host</td>
+</tr>
+<tr>
+<td>NFR5</td>
+<td>immutable audit</td>
+<td>append-only by design</td>
+<td>🟡 PARTIAL</td>
+<td>no enforced DB role</td>
+</tr>
+<tr>
+<td>NFR6</td>
+<td>explainable AI</td>
+<td>Explanation Agent</td>
+<td>✅ IMPLEMENTED</td>
+<td><code>explanation</code> present in details</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="21-roadmap-m1m10-vs-progress">21. Roadmap (M1–M10) vs. Progress</h2>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Book objective</th>
+<th>Current repo state</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1 Architecture</td>
+<td>Architecture Book, C4, ADRs</td>
+<td>Book written (v2.0); <strong>not in repo, no ADR files in repo</strong></td>
+<td>🟡 PARTIAL</td>
+</tr>
+<tr>
+<td>M2 SOC</td>
+<td>parser/normalizer/Sigma/correlation engine</td>
+<td>heuristic LLM classify + SQLite correlation</td>
+<td>🟡 PARTIAL</td>
+</tr>
+<tr>
+<td>M3 Pentest</td>
+<td>scanner/CVE/sandbox</td>
+<td>none</td>
+<td>❌ NOT</td>
+</tr>
+<tr>
+<td>M4 Backend</td>
+<td>auth/schema/REST/runtime skeleton</td>
+<td>FastAPI + SQLite + endpoints (no auth)</td>
+<td>🟡 PARTIAL</td>
+</tr>
+<tr>
+<td>M5 Frontend</td>
+<td>shell/alert panel/health</td>
+<td>5 views, live</td>
+<td>✅ IMPLEMENTED (local)</td>
+</tr>
+<tr>
+<td>M6 Integration</td>
+<td>SOC/Pentest/Backend/Frontend E2E (no AI)</td>
+<td>Backend+Frontend E2E live; SOC inline; no Pentest</td>
+<td>🟡 PARTIAL</td>
+</tr>
+<tr>
+<td>M7 AI</td>
+<td>multi-agent + orchestrator + schemas</td>
+<td>✅ <strong>done</strong> (7 agents, schema-validated)</td>
+<td>✅ IMPLEMENTED</td>
+</tr>
+<tr>
+<td>M8 Runtime</td>
+<td>guardrails + rule deploy/rollback, closed loop</td>
+<td>guardrails ✅; rule <strong>apply simulated, no proxy</strong>, no rollback UI</td>
+<td>🟡 PARTIAL</td>
+</tr>
+<tr>
+<td>M9 Testing</td>
+<td>load/security/validation-loop tests</td>
+<td><code>tests/</code> empty</td>
+<td>❌ NOT</td>
+</tr>
+<tr>
+<td>M10 Research</td>
+<td>benchmarking/metrics/write-up</td>
+<td>none</td>
+<td>❌ NOT</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="22-frontend-consumed-endpoints-final">22. Frontend Consumed Endpoints (final)</h2>
+<table>
+<thead>
+<tr>
+<th>view</th>
+<th>load</th>
+<th>poll</th>
+<th>action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard</td>
+<td><code>GET /api/dashboard</code>, <code>GET /api/infrastructure</code></td>
+<td>4s / 5s</td>
+<td><code>POST /api/analyze-log</code></td>
+</tr>
+<tr>
+<td>Incidents</td>
+<td><code>GET /api/incidents</code></td>
+<td>5s</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Response Actions</td>
+<td><code>GET /api/response-actions</code>, <code>GET /api/actions/simulated</code></td>
+<td>8s</td>
+<td><code>POST /api/actions/{id}/simulate</code></td>
+</tr>
+<tr>
+<td>AI Agents</td>
+<td><code>GET /api/agents</code></td>
+<td>5s</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td><code>GET /api/infrastructure</code></td>
+<td>5s</td>
+<td>—</td>
+</tr>
+<tr>
+<td>App shell</td>
+<td><code>GET /api/stats</code> (backendOnline)</td>
+<td>30s</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="23-dependencies--tooling-actual">23. Dependencies / Tooling (actual)</h2>
+<ul>
+<li><strong>Backend (global Python 3.12):</strong> fastapi 0.141.1, uvicorn 0.52.4, starlette 1.6.0, pydantic 2.13.5, ollama 0.6.2, anyio, h11, requests, mcp. Declared <code>requirements.txt</code> is out of date (missing fastapi/uvicorn).</li>
+<li><strong>Frontend:</strong> react 19.2.8, react-dom 19.2.8, lucide-react 1.38.0; dev: vite 8.2.2, @vitejs/plugin-react 6.1.0, eslint 10.9.0. Scripts: <code>dev</code>, <code>build</code>, <code>lint</code>, <code>preview</code>.</li>
+<li><strong>AI:</strong> Ollama with <code>qwen2.5:7b</code>.</li>
+</ul>
+<hr>
+<h2 id="24-known-issues--cleanup">24. Known Issues / Cleanup</h2>
+<ol>
+<li><code>requirements.txt</code> doesn't reflect actual deps (fastapi/uvicorn missing).</li>
+<li>Project <code>.venv</code> is empty — relies on global Python (reproducibility risk).</li>
+<li>Legacy dead files: <code>main_agent.py</code>, <code>agents.py</code>, <code>database.py</code> (superseded).</li>
+<li>Empty <code>tests/</code> — no automated verification yet.</li>
+<li><code>config/settings.py</code> empty — no configuration surface.</li>
+<li>Stray 0-byte root <code>soc_threats.db</code> + large <code>.zip</code> archives tracked/untracked in repo root.</li>
+<li>Root <code>README.md</code> is 1 line; <code>fullstack-dashboard/README.md</code> is the Vite template boilerplate.</li>
+<li>Unused placeholder dirs <code>database-mcp/</code>, <code>red-team/</code>, and <code>docs/</code> (created for this report).</li>
+<li>Duplicate imports in <code>schemas/agent_outputs.py</code> (cosmetic).</li>
+</ol>
+<hr>
+<h2 id="25-ports--runtime-reference">25. Ports &amp; Runtime Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Service</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8000</td>
+<td>FastAPI backend</td>
+<td>PID 21092 @ inspection (fresh uvicorn)</td>
+</tr>
+<tr>
+<td>5174</td>
+<td>Vite frontend</td>
+<td>PID 23824 (node vite)</td>
+</tr>
+<tr>
+<td>11434</td>
+<td>Ollama</td>
+<td>PID 20724, <code>qwen2.5:7b</code></td>
+</tr>
+</tbody>
+</table>
+<p>Frontend → backend via Vite <code>/api</code> proxy (6-min timeout for AI runs). Backend health computes live status from SQLite + Ollama probes.</p>
+<hr>
+<h2 id="26-conclusion">26. Conclusion</h2>
+<p>The <strong>current implementation is a genuine, running Autonomous SOC decision pipeline plus a live dashboard</strong>: a 7-agent AI team (real Ollama LLM, schema-validated outputs), a deterministic guardrail/safety gate, durable SQLite persistence with 33 real incidents and 26 simulated actions, and a 5-view React dashboard consuming 16 live endpoints — verified healthy end-to-end at inspection.</p>
+<p>It corresponds to <strong>M7 (AI layer) done</strong> and <strong>M8 partially simulated</strong> in the book's roadmap. The <strong>platform-scale intent of the Architecture Book — reverse proxy with real rule apply/rollback, pentest/self-validation, PostgreSQL/Redis, WebSockets, authentication/RBAC/TLS — remains largely unimplemented (PLANNED / NOT implemented)</strong>. The repo is an excellent, demonstrable vertical slice and a solid foundation, not yet the distributed, Zero-Trust, self-validating platform the Architecture Book specifies.</p>
+<blockquote>
+<p><strong>Recommended immediate next steps</strong> (matches Section 19 backlog P0): implement real runtime rule apply/rollback (FR4) behind a testable reverse proxy with a kill-switch, add auth/RBAC + <code>/api/v1</code>, add an immutable audit log (FR7/NFR5), and then stand up the pentest/validation engine (FR5).</p>
+</blockquote>
+<hr>
+<p><em>End of Report — generated from live source inspection, Architecture Book v2.0, and live runtime/database evidence as of 2026-09-01. No code was modified during this documentation pass.</em></p>
+
+</body>
+</html>
