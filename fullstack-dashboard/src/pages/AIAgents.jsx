@@ -42,10 +42,17 @@ export default function AIAgents({ backendOnline }) {
     inFlight.current = true
     setLoading(true)
     setError('')
+
     try {
       const data = await api.getAgents()
-      setAgents(data.agents || [])
-      setPipelineStatus(data.pipeline_status || '')
+
+      if (Array.isArray(data)) {
+        setAgents(data)
+        setPipelineStatus('')
+      } else {
+        setAgents(Array.isArray(data?.agents) ? data.agents : [])
+        setPipelineStatus(data?.pipeline_status || '')
+      }
     } catch (err) {
       setError(err.message || 'Unable to load agent status.')
       setAgents([])
@@ -55,6 +62,7 @@ export default function AIAgents({ backendOnline }) {
       inFlight.current = false
     }
   }
+
 
   useEffect(() => {
     // Async fetch on mount is intentional.

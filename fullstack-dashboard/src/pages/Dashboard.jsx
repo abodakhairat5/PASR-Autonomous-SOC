@@ -161,6 +161,7 @@ export default function Dashboard({
   onReset,
   backendOnline,
 }) {
+  console.log('PASR DASHBOARD RESULT:', result)
   const [dash, setDash] = useState(null)
   const [dashLoading, setDashLoading] = useState(true)
   const [dashError, setDashError] = useState('')

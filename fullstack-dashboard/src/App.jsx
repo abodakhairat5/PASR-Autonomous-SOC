@@ -63,25 +63,34 @@ function App() {
   }, [])
 
   const handleAnalyze = async () => {
-    if (!rawLog.trim() || analyzing) return
-    setAnalyzing(true)
-    setAnalyzeError('')
-    setResult(null)
-    try {
-      const data = await api.analyzeLog(rawLog)
-      setResult(data)
-      setBackendOnline(true)
-      checkBackend()
-    } catch (err) {
-      setAnalyzeError(
-        err.message ||
-          'Unable to reach the PASR backend. Verify FastAPI is running on port 8000.'
-      )
-      setBackendOnline(false)
-    } finally {
-      setAnalyzing(false)
-    }
+  if (!rawLog.trim() || analyzing) return
+
+  setAnalyzing(true)
+  setAnalyzeError('')
+  setResult(null)
+
+  try {
+    const data = await api.analyzeLog(rawLog)
+
+    console.log('PASR API RESPONSE:', data)
+
+    // Backend returns:
+    // { status: "processed", result: { attack, correlation, ... } }
+    // Dashboard expects the inner result object.
+    setResult(data.result || data)
+
+    setBackendOnline(true)
+    checkBackend()
+  } catch (err) {
+    setAnalyzeError(
+      err.message ||
+        'Unable to reach the PASR backend. Verify FastAPI is running on port 8000.'
+    )
+    setBackendOnline(false)
+  } finally {
+    setAnalyzing(false)
   }
+}
 
   const handleNavigate = (page) => {
     setActivePage(page)
