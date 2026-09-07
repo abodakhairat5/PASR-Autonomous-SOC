@@ -24,7 +24,7 @@ export default function Incidents() {
     setError('')
     try {
       const data = await api.getIncidents()
-      setIncidents(data.incidents || [])
+      setIncidents(Array.isArray(data) ? data : (data.incidents || []))
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (err) {
       setError(

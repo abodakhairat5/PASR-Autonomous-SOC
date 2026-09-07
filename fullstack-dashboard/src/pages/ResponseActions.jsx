@@ -95,7 +95,7 @@ export default function ResponseActions() {
     setError('')
     try {
       const data = await api.getResponseActions()
-      setActions(data.actions || [])
+      setActions(Array.isArray(data) ? data : (data.actions || []))
     } catch (err) {
       setError(err.message || 'Unable to load response actions.')
       setActions([])
