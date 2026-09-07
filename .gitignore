@@ -1,3 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
 
-# Archives
-*.zip
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python databases
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.bak
+
+# Node
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
