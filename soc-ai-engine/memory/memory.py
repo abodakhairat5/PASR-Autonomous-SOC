@@ -119,6 +119,79 @@ def get_events_by_source_ip(source_ip: str, limit: int = 20) -> list[dict[str, A
     finally:
         conn.close()
 
+def get_knowledge_by_source_ip(
+    source_ip: str,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    """
+    Retrieve previously learned Knowledge Agent outputs for a source IP.
+
+    Knowledge is stored inside the persisted pipeline details and is used
+    only as historical evidence for future correlation.
+    It does NOT act as an executable security policy.
+    """
+
+    if not source_ip or source_ip == "Unknown":
+        return []
+
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                timestamp,
+                source_ip,
+                attack_type,
+                severity,
+                action_taken,
+                guardrail_approved,
+                reason,
+                details
+            FROM threat_logs
+            WHERE source_ip = ?
+              AND details IS NOT NULL
+            ORDER BY timestamp DESC, id DESC
+            LIMIT ?
+            """,
+            (source_ip, limit),
+        )
+
+        rows = cursor.fetchall()
+
+        knowledge_items = []
+
+        for row in rows:
+            event = _row_to_incident(row)
+            details = event.get("details") or {}
+            knowledge = details.get("knowledge")
+
+            if not knowledge:
+                continue
+
+            knowledge_items.append(
+                {
+                    "event_id": event.get("id"),
+                    "timestamp": event.get("timestamp"),
+                    "source_ip": event.get("source_ip"),
+                    "attack_type": event.get("attack_type"),
+                    "severity": event.get("severity"),
+                    "validated_action": knowledge.get("validated_action"),
+                    "validation_status": knowledge.get("validation_status"),
+                    "confidence": knowledge.get("confidence"),
+                    "lesson": knowledge.get("lesson"),
+                    "reusable_pattern": knowledge.get("reusable_pattern"),
+                }
+            )
+
+        return knowledge_items
+
+    finally:
+        conn.close()
 
 def get_recent_events(limit: int = 10) -> list[dict[str, Any]]:
     """

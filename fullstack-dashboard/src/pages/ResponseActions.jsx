@@ -1,17 +1,66 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { RefreshCw, Ban, BellRing, UserCheck, Inbox, Play, CheckCircle2 } from 'lucide-react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+
+import {
+  RefreshCw,
+  Ban,
+  BellRing,
+  UserCheck,
+  Inbox,
+  Play,
+  CheckCircle2,
+  ShieldCheck,
+  Rocket,
+  RotateCcw,
+} from 'lucide-react'
+
 import { api } from '../services/api'
 import {
-  AttackTypeBadge,
   ActionBadge,
   GuardrailBadge,
 } from '../components/StatusBadge'
 
 const GROUP_META = {
-  BLOCK: { label: 'Block Actions', icon: Ban, tone: 'red', desc: 'Source IPs automatically blocked' },
-  ALERT: { label: 'Alert Actions', icon: BellRing, tone: 'yellow', desc: 'Security alerts generated' },
-  ALERT_HUMAN_ANALYST: { label: 'Human Analyst Alerts', icon: UserCheck, tone: 'blue', desc: 'Escalated for human review' },
+  BLOCK: {
+    label: 'Block Actions',
+    icon: Ban,
+
+    tone: 'red',
+    desc: 'Source IPs automatically blocked',
+  },
+
+  ALERT: {
+    label: 'Alert Actions',
+    icon: BellRing,
+    tone: 'yellow',
+    desc: 'Security alerts generated',
+  },
+
+  ALERT_HUMAN_ANALYST: {
+    label: 'Human Analyst Alerts',
+    icon: UserCheck,
+    tone: 'blue',
+    desc: 'Escalated for human review',
+  },
 }
+
+
+function AttackTypeBadge({ type }) {
+  if (!type) {
+    return <span className="muted">—</span>
+  }
+
+  return (
+    <span className="pill neutral">
+      {type}
+    </span>
+  )
+}
+
 
 function SimLog({ log, loading, onRefresh }) {
   return (
@@ -20,19 +69,30 @@ function SimLog({ log, loading, onRefresh }) {
         <div className="group-icon">
           <CheckCircle2 size={22} />
         </div>
+
         <div className="group-text">
           <div className="group-title-row">
             <h3>Safe Simulation Log</h3>
-            <span className="action neutral">{log.length}</span>
+            <span className="action neutral">
+              {log.length}
+            </span>
           </div>
-          <p>Recorded simulated executions — no real-world network changes are ever made</p>
+
+          <p>
+            Recorded simulated executions — no real-world
+            network changes are ever made
+          </p>
         </div>
       </div>
 
       {!log.length ? (
         <div className="empty-state compact">
           <Inbox size={24} />
-          <p>No simulated actions recorded yet. Use “Simulate Execute” on a response row above.</p>
+
+          <p>
+            No simulated actions recorded yet. Use
+            “Simulate Execute” on a response row above.
+          </p>
         </div>
       ) : (
         <div className="table-wrapper">
@@ -46,16 +106,32 @@ function SimLog({ log, loading, onRefresh }) {
                 <th>Outcome</th>
               </tr>
             </thead>
+
             <tbody>
               {log.map((item) => (
                 <tr key={item.id}>
-                  <td className="timestamp">{item.recorded_at}</td>
-                  <td className="ip">{item.source_ip || '—'}</td>
-                  <td><AttackTypeBadge type={item.attack_type} /></td>
-                  <td><ActionBadge action={item.action} /></td>
+                  <td className="timestamp">
+                    {item.recorded_at}
+                  </td>
+
+                  <td className="ip">
+                    {item.source_ip || '—'}
+                  </td>
+
+                  <td>
+                    <AttackTypeBadge
+                      type={item.attack_type}
+                    />
+                  </td>
+
+                  <td>
+                    <ActionBadge action={item.action} />
+                  </td>
+
                   <td>
                     <span className="pill green">
-                      <CheckCircle2 size={13} /> {item.outcome}
+                      <CheckCircle2 size={13} />
+                      {item.outcome}
                     </span>
                   </td>
                 </tr>
@@ -66,8 +142,15 @@ function SimLog({ log, loading, onRefresh }) {
       )}
 
       <div className="analyzer-actions">
-        <button className="refresh-btn" onClick={onRefresh} disabled={loading}>
-          <RefreshCw size={17} className={loading ? 'spin' : ''} />
+        <button
+          className="refresh-btn"
+          onClick={onRefresh}
+          disabled={loading}
+        >
+          <RefreshCw
+            size={17}
+            className={loading ? 'spin' : ''}
+          />
           Refresh Log
         </button>
       </div>
@@ -75,7 +158,276 @@ function SimLog({ log, loading, onRefresh }) {
   )
 }
 
+
+function RuntimeRules({
+  rules,
+  loading,
+  error,
+  onRefresh,
+  onAction,
+  runtimeActionId,
+}) {
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'green'
+
+      case 'VALIDATED':
+        return 'blue'
+
+      case 'PENDING_APPROVAL':
+        return 'yellow'
+
+      case 'ROLLED_BACK':
+        return 'neutral'
+
+      case 'REJECTED':
+        return 'red'
+
+      default:
+        return 'neutral'
+    }
+  }
+
+  return (
+    <section className="action-group">
+      <div className="action-group-header tone-blue">
+        <div className="group-icon">
+          <ShieldCheck size={22} />
+        </div>
+
+        <div className="group-text">
+          <div className="group-title-row">
+            <h3>Runtime Security Rules</h3>
+
+            <span className="action neutral">
+              {rules.length}
+            </span>
+          </div>
+
+          <p>
+            Runtime rules generated by PASR and managed
+            through the validation and deployment lifecycle
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="error-box">
+          {error}
+        </div>
+      )}
+
+      {!rules.length && !loading ? (
+        <div className="empty-state compact">
+          <Inbox size={24} />
+
+          <p>
+            No runtime security rules recorded yet.
+          </p>
+        </div>
+      ) : (
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Rule ID</th>
+                <th>Target IP</th>
+                <th>Action</th>
+                <th>Protocol</th>
+                <th>Direction</th>
+                <th>Status</th>
+                <th>Approval</th>
+                <th>Runtime Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rules.map((rule) => (
+                <tr key={rule.rule_id}>
+                  <td className="ip">
+                    {rule.rule_id}
+                  </td>
+
+                  <td className="ip">
+                    {rule.target_ip || '—'}
+                  </td>
+
+                  <td>
+                    <ActionBadge
+                      action={rule.rule_type}
+                    />
+                  </td>
+
+                  <td>
+                    {rule.protocol || '—'}
+                  </td>
+
+                  <td>
+                    {rule.direction || '—'}
+                  </td>
+
+                  <td>
+                    <span
+                      className={`pill ${getStatusClass(
+                        rule.status
+                      )}`}
+                    >
+                      {rule.status}
+                    </span>
+                  </td>
+
+                  <td>
+                    {rule.requires_approval ? (
+                      <span className="pill yellow">
+                        Required
+                      </span>
+                    ) : (
+                      <span className="pill green">
+                        Not Required
+                      </span>
+                    )}
+                  </td>
+
+                  <td>
+                    <div className="analyzer-actions">
+
+                      {rule.status === 'PROPOSED' && (
+                        <button
+                          className="refresh-btn"
+                          onClick={() =>
+                            onAction(
+                              rule.rule_id,
+                              'validate'
+                            )
+                          }
+                          disabled={
+                            runtimeActionId ===
+                            rule.rule_id
+                          }
+                        >
+                          <ShieldCheck size={14} />
+                          Validate
+                        </button>
+                      )}
+
+                      {rule.status === 'PENDING_APPROVAL' && (
+                        <button
+                          className="refresh-btn"
+                          onClick={() =>
+                            onAction(
+                              rule.rule_id,
+                              'approve'
+                            )
+                          }
+                          disabled={
+                            runtimeActionId ===
+                            rule.rule_id
+                          }
+                        >
+                          <CheckCircle2 size={14} />
+                          Approve
+                        </button>
+                      )}
+
+                      {rule.status === 'VALIDATED' && (
+                        <button
+                          className="refresh-btn"
+                          onClick={() =>
+                            onAction(
+                              rule.rule_id,
+                              'apply'
+                            )
+                          }
+                          disabled={
+                            runtimeActionId ===
+                            rule.rule_id
+                          }
+                        >
+                          <Play size={14} />
+                          Apply
+                        </button>
+                      )}
+
+                      {rule.status === 'ACTIVE' && (
+                        <>
+                          <button
+                            className="refresh-btn"
+                            onClick={() =>
+                              onAction(
+                                rule.rule_id,
+                                'deploy'
+                              )
+                            }
+                            disabled={
+                              runtimeActionId ===
+                              rule.rule_id
+                            }
+                          >
+                            <Rocket size={14} />
+                            Deploy
+                          </button>
+
+                          <button
+                            className="refresh-btn"
+                            onClick={() =>
+                              onAction(
+                                rule.rule_id,
+                                'rollback'
+                              )
+                            }
+                            disabled={
+                              runtimeActionId ===
+                              rule.rule_id
+                            }
+                          >
+                            <RotateCcw size={14} />
+                            Rollback
+                          </button>
+                        </>
+                      )}
+
+                      {rule.status === 'ROLLED_BACK' && (
+                        <span className="muted">
+                          No active action
+                        </span>
+                      )}
+
+                      {rule.status === 'REJECTED' && (
+                        <span className="muted">
+                          Rejected
+                        </span>
+                      )}
+
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="analyzer-actions">
+        <button
+          className="refresh-btn"
+          onClick={onRefresh}
+          disabled={loading}
+        >
+          <RefreshCw
+            size={17}
+            className={loading ? 'spin' : ''}
+          />
+          Refresh Rules
+        </button>
+      </div>
+    </section>
+  )
+}
+
+
 export default function ResponseActions() {
+
   const [actions, setActions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -85,19 +437,37 @@ export default function ResponseActions() {
   const [simError, setSimError] = useState('')
   const [executingId, setExecutingId] = useState(null)
 
+  const [runtimeRules, setRuntimeRules] = useState([])
+  const [runtimeLoading, setRuntimeLoading] = useState(true)
+  const [runtimeError, setRuntimeError] = useState('')
+  const [runtimeActionId, setRuntimeActionId] = useState(null)
+
   const actionsInFlight = useRef(false)
   const simInFlight = useRef(false)
+  const runtimeInFlight = useRef(false)
+
 
   const load = async () => {
     if (actionsInFlight.current) return
+
     actionsInFlight.current = true
     setLoading(true)
     setError('')
+
     try {
       const data = await api.getResponseActions()
-      setActions(Array.isArray(data) ? data : (data.actions || []))
+
+      setActions(
+        Array.isArray(data)
+          ? data
+          : (data.actions || [])
+      )
     } catch (err) {
-      setError(err.message || 'Unable to load response actions.')
+      setError(
+        err.message ||
+        'Unable to load response actions.'
+      )
+
       setActions([])
     } finally {
       setLoading(false)
@@ -105,15 +475,23 @@ export default function ResponseActions() {
     }
   }
 
+
   const loadSimLog = async () => {
     if (simInFlight.current) return
+
     simInFlight.current = true
     setSimError('')
+
     try {
       const data = await api.getSimulatedActions()
+
       setSimLog(data.actions || [])
     } catch (err) {
-      setSimError(err.message || 'Unable to load the simulation log.')
+      setSimError(
+        err.message ||
+        'Unable to load the simulation log.'
+      )
+
       setSimLog([])
     } finally {
       setSimLoading(false)
@@ -121,120 +499,352 @@ export default function ResponseActions() {
     }
   }
 
+
+  const loadRuntimeRules = async () => {
+    if (runtimeInFlight.current) return
+
+    runtimeInFlight.current = true
+    setRuntimeLoading(true)
+    setRuntimeError('')
+
+    try {
+      const data = await api.getRuntimeRules()
+
+      setRuntimeRules(
+        Array.isArray(data)
+          ? data
+          : (data.rules || [])
+      )
+    } catch (err) {
+      setRuntimeError(
+        err.message ||
+        'Unable to load runtime security rules.'
+      )
+
+      setRuntimeRules([])
+    } finally {
+      setRuntimeLoading(false)
+      runtimeInFlight.current = false
+    }
+  }
+
+
+  const handleRuntimeAction = async (
+    ruleId,
+    action
+  ) => {
+    if (runtimeActionId != null) return
+
+    setRuntimeActionId(ruleId)
+    setRuntimeError('')
+
+    try {
+      switch (action) {
+        case 'validate':
+          await api.validateRuntimeRule(ruleId)
+          break
+
+        case 'approve':
+          await api.approveRuntimeRule(ruleId)
+          break
+
+        case 'apply':
+          await api.applyRuntimeRule(ruleId)
+          break
+
+        case 'deploy':
+          await api.deployRuntimeRule(ruleId)
+          break
+
+        case 'rollback':
+          await api.rollbackRuntimeRule(ruleId)
+          break
+
+        default:
+          throw new Error(
+            `Unsupported runtime action: ${action}`
+          )
+      }
+
+      await loadRuntimeRules()
+    } catch (err) {
+      setRuntimeError(
+        err.message ||
+        `Runtime ${action} failed.`
+      )
+    } finally {
+      setRuntimeActionId(null)
+    }
+  }
+
+
   useEffect(() => {
-    // Async fetch on mount is intentional.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
     loadSimLog()
+    loadRuntimeRules()
 
     const id = setInterval(() => {
-      // Keep response actions current after new analyses.
       load()
       loadSimLog()
+      loadRuntimeRules()
     }, 8000)
 
     return () => clearInterval(id)
   }, [])
 
-  const executedIds = useMemo(() => new Set(simLog.map((item) => item.incident_id)), [simLog])
+
+  const executedIds = useMemo(
+    () =>
+      new Set(
+        simLog.map(
+          (item) => item.incident_id
+        )
+      ),
+    [simLog]
+  )
+
 
   const groups = useMemo(() => {
-    const order = ['BLOCK', 'ALERT', 'ALERT_HUMAN_ANALYST']
+    const order = [
+      'BLOCK',
+      'ALERT',
+      'ALERT_HUMAN_ANALYST',
+    ]
+
     const byAction = {}
+
     actions.forEach((a) => {
       const key = a.final_action
-      if (!byAction[key]) byAction[key] = []
+
+      if (!byAction[key]) {
+        byAction[key] = []
+      }
+
       byAction[key].push(a)
     })
+
     const named = order
-      .filter((key) => byAction[key] && byAction[key].length)
-      .map((key) => ({ key, items: byAction[key] }))
-    // Include any other real action types that exist in the database.
+      .filter(
+        (key) =>
+          byAction[key] &&
+          byAction[key].length
+      )
+      .map((key) => ({
+        key,
+        items: byAction[key],
+      }))
+
     Object.keys(byAction)
-      .filter((key) => !order.includes(key) && byAction[key]?.length)
-      .forEach((key) => named.push({ key, items: byAction[key] }))
+      .filter(
+        (key) =>
+          !order.includes(key) &&
+          byAction[key]?.length
+      )
+      .forEach((key) => {
+        named.push({
+          key,
+          items: byAction[key],
+        })
+      })
+
     return named
   }, [actions])
 
-  const handleSimulate = async (incidentId, finalAction) => {
+
+  const handleSimulate = async (
+    incidentId,
+    finalAction
+  ) => {
     if (executingId != null) return
+
     setExecutingId(incidentId)
     setSimError('')
+
     try {
-      await api.simulateAction(incidentId, finalAction)
+      await api.simulateAction(
+        incidentId,
+        finalAction
+      )
+
       await loadSimLog()
     } catch (err) {
-      setSimError(err.message || 'Simulated action failed to record.')
+      setSimError(
+        err.message ||
+        'Simulated action failed to record.'
+      )
     } finally {
       setExecutingId(null)
     }
   }
 
+
   if (error) {
     return (
-      <div className="page-state">
-        <div className="error-box">{error}</div>
-        <button className="refresh-btn" onClick={load}>
-          <RefreshCw size={17} /> Retry
-        </button>
+      <div className="response-actions">
+
+        <div className="page-state">
+          <div className="error-box">
+            {error}
+          </div>
+
+          <button
+            className="refresh-btn"
+            onClick={load}
+          >
+            <RefreshCw size={17} />
+            Retry
+          </button>
+        </div>
+
+        <RuntimeRules
+          rules={runtimeRules}
+          loading={runtimeLoading}
+          error={runtimeError}
+          onRefresh={loadRuntimeRules}
+          onAction={handleRuntimeAction}
+          runtimeActionId={runtimeActionId}
+        />
+
+        <SimLog
+          log={simLog}
+          loading={simLoading}
+          onRefresh={loadSimLog}
+        />
+
       </div>
     )
   }
+
 
   if (loading && !actions.length) {
     return (
-      <div className="page-state">
-        <div className="empty-state">
-          <RefreshCw size={28} className="spin" />
-          <p>Loading response actions...</p>
+      <div className="response-actions">
+
+        <div className="page-state">
+          <div className="empty-state">
+            <RefreshCw
+              size={28}
+              className="spin"
+            />
+            <p>
+              Loading response actions...
+            </p>
+          </div>
         </div>
+
+        <RuntimeRules
+          rules={runtimeRules}
+          loading={runtimeLoading}
+          error={runtimeError}
+          onRefresh={loadRuntimeRules}
+          onAction={handleRuntimeAction}
+          runtimeActionId={runtimeActionId}
+        />
+
       </div>
     )
   }
+
 
   if (!groups.length) {
     return (
-      <div className="page-state">
-        <div className="empty-state">
-          <Inbox size={28} />
-          <p>No response actions recorded yet.</p>
+      <div className="response-actions">
+
+        <div className="page-state">
+          <div className="empty-state">
+            <Inbox size={28} />
+            <p>
+              No response actions recorded yet.
+            </p>
+          </div>
+
+          <button
+            className="refresh-btn"
+            onClick={load}
+          >
+            <RefreshCw size={17} />
+            Refresh
+          </button>
         </div>
-        <button className="refresh-btn" onClick={load}>
-          <RefreshCw size={17} /> Refresh
-        </button>
+
+        <RuntimeRules
+          rules={runtimeRules}
+          loading={runtimeLoading}
+          error={runtimeError}
+          onRefresh={loadRuntimeRules}
+          onAction={handleRuntimeAction}
+          runtimeActionId={runtimeActionId}
+        />
+
+        <SimLog
+          log={simLog}
+          loading={simLoading}
+          onRefresh={loadSimLog}
+        />
+
       </div>
     )
   }
 
+
   return (
     <div className="response-actions">
-      {simError && <div className="error-box">{simError}</div>}
+
+      {simError && (
+        <div className="error-box">
+          {simError}
+        </div>
+      )}
 
       {groups.map(({ key, items }) => {
-        const meta = GROUP_META[key] || {
-          label: key,
-          icon: Ban,
-          tone: 'blue',
-          desc: 'Response actions',
-        }
+        const meta =
+          GROUP_META[key] || {
+            label: key,
+            icon: Ban,
+            tone: 'blue',
+            desc: 'Response actions',
+          }
+
         const Icon = meta.icon
+
         return (
-          <section key={key} className="action-group">
-            <div className={`action-group-header tone-${meta.tone}`}>
+          <section
+            key={key}
+            className="action-group"
+          >
+
+            <div
+              className={`action-group-header tone-${meta.tone}`}
+            >
               <div className="group-icon">
                 <Icon size={22} />
               </div>
+
               <div className="group-text">
+
                 <div className="group-title-row">
                   <h3>{meta.label}</h3>
-                  <span className={`action ${String(key).toLowerCase()}`}>{items.length}</span>
+
+                  <span
+                    className={`action ${String(
+                      key
+                    ).toLowerCase()}`}
+                  >
+                    {items.length}
+                  </span>
                 </div>
-                <p>{meta.desc} — {items.length} triggered</p>
+
+                <p>
+                  {meta.desc} — {items.length} triggered
+                </p>
+
               </div>
             </div>
 
+
             <div className="table-wrapper">
               <table>
+
                 <thead>
                   <tr>
                     <th>Timestamp</th>
@@ -248,53 +858,136 @@ export default function ResponseActions() {
                     <th>Simulate</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {items.map((action, index) => {
-                    const executed = action.id != null && executedIds.has(action.id)
+
+                    const executed =
+                      action.id != null &&
+                      executedIds.has(action.id)
+
                     return (
-                      <tr key={`${action.id ?? action.timestamp}-${index}`}>
-                        <td className="timestamp">{action.timestamp}</td>
-                        <td className="ip">{action.source_ip || action.target_ip}</td>
-                        <td><AttackTypeBadge type={action.attack_type} /></td>
+                      <tr
+                        key={`${
+                          action.id ??
+                          action.timestamp
+                        }-${index}`}
+                      >
+
+                        <td className="timestamp">
+                          {action.timestamp}
+                        </td>
+
+                        <td className="ip">
+                          {action.source_ip ||
+                            action.target_ip}
+                        </td>
+
+                        <td>
+                          <AttackTypeBadge
+                            type={action.attack_type}
+                          />
+                        </td>
+
                         <td>
                           {action.recommended_action ? (
-                            <ActionBadge action={action.recommended_action} />
+                            <ActionBadge
+                              action={
+                                action.recommended_action
+                              }
+                            />
                           ) : (
-                            <span className="muted">—</span>
+                            <span className="muted">
+                              —
+                            </span>
                           )}
                         </td>
-                        <td><ActionBadge action={action.final_action} /></td>
-                        <td>{action.priority || <span className="muted">—</span>}</td>
-                        <td><GuardrailBadge approved={action.guardrail_approved} /></td>
-                        <td className="reason-cell">{action.reason}</td>
+
+                        <td>
+                          <ActionBadge
+                            action={action.final_action}
+                          />
+                        </td>
+
+                        <td>
+                          {action.priority || (
+                            <span className="muted">
+                              —
+                            </span>
+                          )}
+                        </td>
+
+                        <td>
+                          <GuardrailBadge
+                            approved={
+                              action.guardrail_approved
+                            }
+                          />
+                        </td>
+
+                        <td className="reason-cell">
+                          {action.reason}
+                        </td>
+
                         <td>
                           {executed ? (
                             <span className="pill green">
-                              <CheckCircle2 size={13} /> Executed
+                              <CheckCircle2 size={13} />
+                              Executed
                             </span>
                           ) : (
                             <button
                               className="refresh-btn simulate-btn"
-                              onClick={() => handleSimulate(action.id, action.final_action)}
-                              disabled={executingId != null}
+                              onClick={() =>
+                                handleSimulate(
+                                  action.id,
+                                  action.final_action
+                                )
+                              }
+                              disabled={
+                                executingId != null
+                              }
                               title="Safely simulate this action (logs only, no real network change)"
                             >
                               <Play size={13} />
-                              {executingId === action.id ? 'Recording...' : 'Simulate Execute'}
+
+                              {executingId ===
+                              action.id
+                                ? 'Recording...'
+                                : 'Simulate Execute'}
                             </button>
                           )}
                         </td>
+
                       </tr>
                     )
                   })}
                 </tbody>
+
               </table>
             </div>
+
           </section>
         )
       })}
 
-      <SimLog log={simLog} loading={simLoading} onRefresh={loadSimLog} />
+
+      <RuntimeRules
+        rules={runtimeRules}
+        loading={runtimeLoading}
+        error={runtimeError}
+        onRefresh={loadRuntimeRules}
+        onAction={handleRuntimeAction}
+        runtimeActionId={runtimeActionId}
+      />
+
+
+      <SimLog
+        log={simLog}
+        loading={simLoading}
+        onRefresh={loadSimLog}
+      />
+
     </div>
   )
 }

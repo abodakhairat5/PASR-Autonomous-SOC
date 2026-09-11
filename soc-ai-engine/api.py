@@ -1,7 +1,10 @@
 from fastapi import APIRouter, FastAPI, HTTPException
 from pydantic import BaseModel
 import asyncio
-
+from runtime.deployment import deployment_service
+from schemas.agent_outputs import RuleGeneratorOutput
+from runtime.manager import runtime_manager
+from runtime.models import RuntimeRuleStatus
 from orchestrator.pipeline import run_soc_pipeline
 from memory.memory import (
     get_connection,
@@ -387,7 +390,226 @@ async def api_root():
             detail=f"API service error: {str(e)}"
         )
 
+# ============================================================
+# Runtime Manager API
+# ============================================================
+@api_router.post("/runtime/rules")
+async def api_runtime_create_rule(payload: RuleGeneratorOutput):
+    try:
+        rule = runtime_manager.create_rule(payload)
 
+        return {
+            "status": "success",
+            "action": "created",
+            "rule": rule.model_dump(),
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not create runtime rule: {str(e)}"
+        )
+@api_router.get("/runtime/rules")
+async def api_runtime_rules():
+    try:
+        rules = runtime_manager.get_all_rules()
+
+        return {
+            "status": "success",
+            "count": len(rules),
+            "rules": [rule.model_dump() for rule in rules],
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not retrieve runtime rules: {str(e)}"
+        )
+
+
+@api_router.get("/runtime/rules/active")
+async def api_runtime_active_rules():
+    try:
+        rules = runtime_manager.get_active_rules()
+
+        return {
+            "status": "success",
+            "count": len(rules),
+            "rules": [rule.model_dump() for rule in rules],
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not retrieve active runtime rules: {str(e)}"
+        )
+
+
+@api_router.get("/runtime/rules/pending")
+async def api_runtime_pending_rules():
+    try:
+        rules = runtime_manager.get_rules_by_status(
+            RuntimeRuleStatus.PENDING_APPROVAL
+        )
+
+        return {
+            "status": "success",
+            "count": len(rules),
+            "rules": [rule.model_dump() for rule in rules],
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not retrieve pending runtime rules: {str(e)}"
+        )
+
+@api_router.post("/runtime/rules/{rule_id}/validate")
+async def api_runtime_validate_rule(rule_id: str):
+    try:
+        rule = runtime_manager.validate_rule(rule_id)
+
+        return {
+            "status": "success",
+            "action": "validated",
+            "rule": rule.model_dump(),
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not validate runtime rule: {str(e)}"
+        )
+@api_router.get("/runtime/rules/{rule_id}")
+async def api_runtime_rule(rule_id: str):
+    try:
+        rule = runtime_manager.get_rule(rule_id)
+
+        return {
+            "status": "success",
+            "rule": rule.model_dump(),
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not retrieve runtime rule: {str(e)}"
+        )
+
+
+@api_router.post("/runtime/rules/{rule_id}/approve")
+async def api_runtime_approve_rule(rule_id: str):
+    try:
+        rule = runtime_manager.approve_rule(rule_id)
+
+        return {
+            "status": "success",
+            "action": "approved",
+            "rule": rule.model_dump(),
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not approve runtime rule: {str(e)}"
+        )
+
+
+
+@api_router.post("/runtime/rules/{rule_id}/apply")
+async def api_runtime_apply_rule(rule_id: str):
+    try:
+        rule = runtime_manager.apply_rule(rule_id)
+
+        return {
+            "status": "success",
+            "action": "applied",
+            "rule": rule.model_dump(),
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not apply runtime rule: {str(e)}"
+        )
+
+@api_router.post("/runtime/rules/{rule_id}/deploy")
+async def api_runtime_deploy_rule(rule_id: str):
+    try:
+        rule = runtime_manager.get_rule(rule_id)
+
+        if rule.status != RuntimeRuleStatus.ACTIVE:
+            raise ValueError(
+                f"Rule must be ACTIVE before deployment. Current status: {rule.status}"
+            )
+
+        result = deployment_service.deploy(rule)
+
+        return {
+            "status": "success",
+            "action": "deployed",
+            "deployment": result,
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not deploy runtime rule: {str(e)}"
+        )
+
+@api_router.post("/runtime/rules/{rule_id}/rollback")
+async def api_runtime_rollback_rule(rule_id: str):
+    try:
+        rule = runtime_manager.rollback_rule(rule_id)
+
+        return {
+            "status": "success",
+            "action": "rolled_back",
+            "rule": rule.model_dump(),
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not rollback runtime rule: {str(e)}"
+        )
+    
 app.include_router(api_router)
 
 

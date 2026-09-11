@@ -125,4 +125,51 @@ export const api = {
       body: JSON.stringify({ action }),
     })
   },
+
+  // Runtime Security Rules
+  async getRuntimeRules() {
+    return request('/runtime/rules')
+  },
+
+  async getActiveRuntimeRules() {
+    return request('/runtime/rules/active')
+  },
+
+  async getPendingRuntimeRules() {
+    return request('/runtime/rules/pending')
+  },
+
+  async getRuntimeRule(ruleId) {
+    return request(`/runtime/rules/${encodeURIComponent(ruleId)}`)
+  },
+
+  async validateRuntimeRule(ruleId) {
+    return request(`/runtime/rules/${encodeURIComponent(ruleId)}/validate`, {
+      method: 'POST',
+    })
+  },
+
+  async approveRuntimeRule(ruleId) {
+    return request(`/runtime/rules/${encodeURIComponent(ruleId)}/approve`, {
+      method: 'POST',
+    })
+  },
+
+  async applyRuntimeRule(ruleId) {
+    return request(`/runtime/rules/${encodeURIComponent(ruleId)}/apply`, {
+      method: 'POST',
+    })
+  },
+
+  async deployRuntimeRule(ruleId) {
+    return request(`/runtime/rules/${encodeURIComponent(ruleId)}/deploy`, {
+      method: 'POST',
+    })
+  },
+
+  async rollbackRuntimeRule(ruleId) {
+    return request(`/runtime/rules/${encodeURIComponent(ruleId)}/rollback`, {
+      method: 'POST',
+    })
+  },
 }

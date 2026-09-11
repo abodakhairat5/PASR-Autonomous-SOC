@@ -6,15 +6,24 @@ from agents.rule_generator import rule_generator_agent
 from agents.explanation_agent import explanation_agent
 from agents.knowledge_agent import knowledge_agent
 
-from guardrails import validate_action
-from memory.memory import get_events_by_source_ip, save_event
+from memory.memory import (
+    get_events_by_source_ip,
+    get_knowledge_by_source_ip,
+    save_event,
+)
 
+from guardrails import validate_action
+
+from runtime.manager import runtime_manager
+from runtime.models import RuntimeRuleStatus
 
 def run_soc_pipeline(raw_log: str):
+    runtime = runtime_manager
+
     print("=" * 70)
     print("[PASR] Autonomous SOC Pipeline Started")
     print("=" * 70)
-
+    
     # ============================================================
     # Agent 1 - Attack Analyzer
     # ============================================================
@@ -29,23 +38,30 @@ def run_soc_pipeline(raw_log: str):
     source_ip = attack_result.source_ip
 
     # ============================================================
-    # Memory - Retrieve historical events
+    # Memory - Retrieve historical events + validated knowledge
     # ============================================================
     try:
         history = get_events_by_source_ip(source_ip)
     except Exception:
         history = []
 
-    print("\n[Memory] Historical events retrieved.")
-    print(f"    Source IP   : {source_ip}")
-    print(f"    Events      : {len(history)}")
+    try:
+        historical_knowledge = get_knowledge_by_source_ip(source_ip)
+    except Exception:
+        historical_knowledge = []
+
+    print("\n[Memory] Historical context retrieved.")
+    print(f"    Source IP       : {source_ip}")
+    print(f"    Events          : {len(history)}")
+    print(f"    Knowledge       : {len(historical_knowledge)}")
 
     # ============================================================
     # Agent 2 - Threat Correlator
     # ============================================================
     correlation_result = threat_correlator_agent(
         attack_result,
-        history
+        history,
+        historical_knowledge,
     )
 
     print("\n[Pipeline] Agent 2 - Threat Correlator completed.")
@@ -53,6 +69,7 @@ def run_soc_pipeline(raw_log: str):
     print(f"    Related     : {correlation_result.related_event_count}")
     print(f"    Confidence  : {correlation_result.confidence}")
 
+   
     # ============================================================
     # Agent 3 - Risk Assessment
     # ============================================================
@@ -113,24 +130,6 @@ def run_soc_pipeline(raw_log: str):
     print(f"    Evidence    : {len(explanation_result.key_evidence)}")
     print(f"    Decision    : {explanation_result.decision_summary}")
 
-    # ============================================================
-    # Agent 7 - Knowledge Agent
-    # ============================================================
-    knowledge_result = knowledge_agent(
-        attack_result,
-        correlation_result,
-        risk_result,
-        decision_result,
-        rule_result,
-        explanation_result
-    )
-
-    print("\n[Pipeline] Agent 7 - Knowledge Agent completed.")
-    print(f"    Knowledge ID: {knowledge_result.knowledge_id}")
-    print(f"    Event Type  : {knowledge_result.event_type}")
-    print(f"    Action      : {knowledge_result.validated_action}")
-    print(f"    Status      : {knowledge_result.validation_status}")
-    print(f"    Confidence  : {knowledge_result.confidence}")
 
     # ============================================================
     # Guardrails - Validate final AI decision
@@ -150,6 +149,61 @@ def run_soc_pipeline(raw_log: str):
     print(f"    Final Action    : {guardrail_result['override_action']}")
     print(f"    Reason          : {guardrail_result['reason']}")
 
+   # ============================================================
+    # Runtime Engine - Execute validated security rule
+    # ============================================================
+    print("\n[Runtime] Processing security rule...")
+
+    runtime_rule = runtime.create_rule(rule_result)
+
+    print(f"    Rule ID         : {runtime_rule.rule_id}")
+    print(f"    Initial Status  : {runtime_rule.status}")
+
+    if not guardrail_result["approved"]:
+        runtime_rule.status = RuntimeRuleStatus.REJECTED
+        runtime_rule.rejection_reason = guardrail_result["reason"]
+
+        runtime.engine.rules[runtime_rule.rule_id] = runtime_rule
+
+        print("    Runtime Action  : BLOCKED BY GUARDRAILS")
+        print(f"    Runtime Status  : {runtime_rule.status}")
+
+    else:
+        runtime_rule = runtime.validate_rule(runtime_rule.rule_id)
+
+        print(f"    Validation      : {runtime_rule.status}")
+
+        if runtime_rule.status == RuntimeRuleStatus.VALIDATED:
+            runtime_rule = runtime.apply_rule(runtime_rule.rule_id)
+
+            print(f"    Runtime Status  : {runtime_rule.status}")
+
+        elif runtime_rule.status == RuntimeRuleStatus.PENDING_APPROVAL:
+            print("    Runtime Action  : Waiting for human approval")
+
+        # ============================================================
+    # Agent 7 - Knowledge Agent
+    # ============================================================
+    knowledge_result = knowledge_agent(
+        attack_result,
+        correlation_result,
+        risk_result,
+        decision_result,
+        rule_result,
+        explanation_result,
+        guardrail_result,
+        runtime_rule.model_dump(mode="json"),
+    )
+
+    print("\n[Pipeline] Agent 7 - Knowledge Agent completed.")
+    print(f"    Knowledge ID: {knowledge_result.knowledge_id}")
+    print(f"    Event Type  : {knowledge_result.event_type}")
+    print(f"    Action      : {knowledge_result.validated_action}")
+    print(f"    Status      : {knowledge_result.validation_status}")
+    print(f"    Confidence  : {knowledge_result.confidence}")
+
+    final_action = guardrail_result["override_action"]
+
     # ============================================================
     # Save event to Memory
     # ============================================================
@@ -165,6 +219,7 @@ def run_soc_pipeline(raw_log: str):
             "explanation": explanation_result.model_dump(),
             "knowledge": knowledge_result.model_dump(),
             "guardrail": guardrail_result,
+            "runtime": runtime_rule.model_dump(),
         }
 
         save_event(
@@ -216,6 +271,13 @@ def run_soc_pipeline(raw_log: str):
         # Guardrails
         "guardrail": guardrail_result,
 
+        # Runtime
+        "runtime": runtime_rule,
+
         # Final action
-        "final_action": final_action
+        "final_action": final_action,
+
+        # Runtime metadata
+        "runtime_status": runtime_rule.status.value,
+        "runtime_rule_id": runtime_rule.rule_id
     }
