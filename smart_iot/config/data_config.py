@@ -1,10 +1,12 @@
+import os
 from pathlib import Path
 
 
-# Real dataset root.
-# The dataset stays outside the PASR repository.
 DATA_ROOT = Path(
-    r"C:\Users\abdok\Downloads\data agent\data agent\data"
+    os.getenv(
+        "PASR_DATA_ROOT",
+        r"C:\Users\abdok\Downloads\data agent\data agent\data",
+    )
 )
 
 
