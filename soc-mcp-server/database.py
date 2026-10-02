@@ -52,7 +52,7 @@ def insert_security_finding(
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                "unknown",
+                "pentest",
                 title,
                 severity.upper(),
                 "RECEIVED",
@@ -170,3 +170,188 @@ def list_security_findings(limit: int = 20):
         ).fetchall()
 
     return [_parse_finding(row) for row in rows]
+def init_validation_tables():
+    """
+    Create tables required for SOC-side pentest validation.
+    Safe to call multiple times.
+    """
+
+    with get_connection() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pentest_validations (
+                validation_id TEXT PRIMARY KEY,
+                finding_id TEXT NOT NULL,
+                rule_id TEXT,
+                target_url TEXT,
+                attack_vector TEXT,
+                correlation_id TEXT,
+                status TEXT NOT NULL,
+                result TEXT,
+                evidence TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                completed_at TEXT
+            )
+            """
+        )
+
+        conn.commit()
+
+
+def create_validation_request(
+    validation_id: str,
+    finding_id: str,
+    rule_id: str | None,
+    target_url: str | None,
+    attack_vector: str | None,
+    correlation_id: str | None,
+):
+    """
+    Store a new pentest validation request.
+    """
+
+    init_validation_tables()
+
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO pentest_validations (
+                validation_id,
+                finding_id,
+                rule_id,
+                target_url,
+                attack_vector,
+                correlation_id,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                validation_id,
+                finding_id,
+                rule_id,
+                target_url,
+                attack_vector,
+                correlation_id,
+                "REQUESTED",
+            ),
+        )
+
+        conn.commit()
+
+
+def update_validation_result(
+    validation_id: str,
+    result: str,
+    evidence: str | None = None,
+):
+    """
+    Store the authoritative result returned by PentesterWorkflow.
+    """
+
+    init_validation_tables()
+
+    allowed_results = {
+        "BLOCKED",
+        "NOT_BLOCKED",
+        "ERROR",
+    }
+
+    if result not in allowed_results:
+        raise ValueError(
+            f"result must be one of: {', '.join(sorted(allowed_results))}"
+        )
+
+    with get_connection() as conn:
+        cursor = conn.execute(
+            """
+            UPDATE pentest_validations
+            SET
+                status = ?,
+                result = ?,
+                evidence = ?,
+                completed_at = CURRENT_TIMESTAMP
+            WHERE validation_id = ?
+            """,
+            (
+                "COMPLETED",
+                result,
+                evidence,
+                validation_id,
+            ),
+        )
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            raise ValueError(
+                f"Validation '{validation_id}' was not found."
+            )
+
+
+def get_validation(validation_id: str):
+    """
+    Retrieve a validation request/result.
+    """
+
+    init_validation_tables()
+
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT
+                validation_id,
+                finding_id,
+                rule_id,
+                target_url,
+                attack_vector,
+                correlation_id,
+                status,
+                result,
+                evidence,
+                created_at,
+                completed_at
+            FROM pentest_validations
+            WHERE validation_id = ?
+            """,
+            (validation_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return dict(row)
+
+
+def list_validations(limit: int = 20):
+    """
+    Return recent pentest validations.
+    """
+
+    init_validation_tables()
+
+    limit = max(1, min(limit, 100))
+
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                validation_id,
+                finding_id,
+                rule_id,
+                target_url,
+                attack_vector,
+                correlation_id,
+                status,
+                result,
+                evidence,
+                created_at,
+                completed_at
+            FROM pentest_validations
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]

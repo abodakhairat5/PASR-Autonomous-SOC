@@ -4,6 +4,10 @@ from database import (
     insert_security_finding,
     get_security_finding as db_get_security_finding,
     list_security_findings as db_list_security_findings,
+    create_validation_request,
+    update_validation_result,
+    get_validation as db_get_validation,
+    list_validations as db_list_validations,
 )
 
 from validation import validate_security_finding
@@ -176,3 +180,169 @@ if __name__ == "__main__":
         port=8765,
         streamable_http_path="/mcp",
     )
+
+@mcp.tool()
+def request_pentest_validation(
+    validation_id: str,
+    finding_id: str,
+    rule_id: str = "",
+    target_url: str = "",
+    attack_vector: str = "",
+    correlation_id: str = "",
+) -> dict:
+    """
+    Request PentesterWorkflow to re-test a previously detected
+    security finding after SOC mitigation.
+
+    This tool creates the SOC-side validation contract.
+    """
+
+    if not validation_id.strip():
+        return {
+            "status": "rejected",
+            "message": "validation_id is required.",
+        }
+
+    if not finding_id.strip():
+        return {
+            "status": "rejected",
+            "message": "finding_id is required.",
+        }
+
+    try:
+        create_validation_request(
+            validation_id=validation_id.strip(),
+            finding_id=finding_id.strip(),
+            rule_id=rule_id.strip() or None,
+            target_url=target_url.strip() or None,
+            attack_vector=attack_vector.strip() or None,
+            correlation_id=correlation_id.strip() or None,
+        )
+
+    except Exception as exc:
+        return {
+            "status": "error",
+            "message": "Failed to create validation request.",
+            "error": str(exc),
+        }
+
+    return {
+        "status": "requested",
+        "validation_id": validation_id,
+        "finding_id": finding_id,
+        "rule_id": rule_id or None,
+        "message": (
+            "Pentest validation request created. "
+            "PentesterWorkflow should re-test the finding."
+        ),
+    }
+
+
+@mcp.tool()
+def submit_pentest_validation_result(
+    validation_id: str,
+    result: str,
+    evidence: str = "",
+) -> dict:
+    """
+    Receive the authoritative result of a PentesterWorkflow
+    re-test.
+
+    Allowed results:
+    - BLOCKED
+    - NOT_BLOCKED
+    - ERROR
+    """
+
+    result = result.strip().upper()
+
+    try:
+        update_validation_result(
+            validation_id=validation_id.strip(),
+            result=result,
+            evidence=evidence.strip() or None,
+        )
+
+    except ValueError as exc:
+        return {
+            "status": "rejected",
+            "message": str(exc),
+        }
+
+    except Exception as exc:
+        return {
+            "status": "error",
+            "message": "Failed to store validation result.",
+            "error": str(exc),
+        }
+
+    validation = db_get_validation(validation_id.strip())
+
+    return {
+        "status": "completed",
+        "validation": validation,
+        "message": "Pentest validation result stored successfully.",
+    }
+
+
+@mcp.tool()
+def get_pentest_validation(
+    validation_id: str,
+) -> dict:
+    """
+    Retrieve a pentest validation request/result.
+    """
+
+    if not validation_id.strip():
+        return {
+            "status": "error",
+            "message": "validation_id is required.",
+        }
+
+    try:
+        validation = db_get_validation(
+            validation_id.strip()
+        )
+
+    except Exception as exc:
+        return {
+            "status": "error",
+            "message": "Failed to retrieve validation.",
+            "error": str(exc),
+        }
+
+    if validation is None:
+        return {
+            "status": "not_found",
+            "validation_id": validation_id,
+        }
+
+    return {
+        "status": "found",
+        "validation": validation,
+    }
+
+
+@mcp.tool()
+def list_pentest_validations(
+    limit: int = 20,
+) -> dict:
+    """
+    Return recent pentest validation records.
+    """
+
+    try:
+        validations = db_list_validations(limit)
+
+    except Exception as exc:
+        return {
+            "status": "error",
+            "message": "Failed to retrieve validations.",
+            "error": str(exc),
+        }
+
+    return {
+        "status": "success",
+        "count": len(validations),
+        "validations": validations,
+    }

@@ -36,21 +36,28 @@ def run_soc_pipeline(raw_log: str):
     print(f"    Confidence  : {attack_result.confidence}")
 
     source_ip = attack_result.source_ip
+    event_type = attack_result.event_type
 
     # ============================================================
     # Memory - Retrieve historical events + validated knowledge
     # ============================================================
-    try:
-        history = get_events_by_source_ip(source_ip)
-    except Exception:
-        history = []
 
-    try:
-        historical_knowledge = get_knowledge_by_source_ip(source_ip)
-    except Exception:
-        historical_knowledge = []
+    history = []
+    historical_knowledge = []
+
+    if event_type == "NETWORK" and source_ip:
+        try:
+            history = get_events_by_source_ip(source_ip)
+        except Exception:
+            history = []
+
+        try:
+            historical_knowledge = get_knowledge_by_source_ip(source_ip)
+        except Exception:
+            historical_knowledge = []
 
     print("\n[Memory] Historical context retrieved.")
+    print(f"    Event Type      : {event_type}")
     print(f"    Source IP       : {source_ip}")
     print(f"    Events          : {len(history)}")
     print(f"    Knowledge       : {len(historical_knowledge)}")
@@ -138,17 +145,23 @@ def run_soc_pipeline(raw_log: str):
 
     proposed_action = decision_result.recommended_action
 
+    # Network events use source IP.
+    # Pentest events use the affected target/asset.
+    guardrail_target = source_ip
+
+    if event_type == "PENTEST":
+        guardrail_target = decision_result.target
+
     guardrail_result = validate_action(
         proposed_action,
-        source_ip
+        guardrail_target
     )
 
     print(f"    Proposed Action : {proposed_action}")
-    print(f"    Target          : {source_ip}")
+    print(f"    Target          : {guardrail_target}")
     print(f"    Approved        : {guardrail_result['approved']}")
     print(f"    Final Action    : {guardrail_result['override_action']}")
     print(f"    Reason          : {guardrail_result['reason']}")
-
    # ============================================================
     # Runtime Engine - Execute validated security rule
     # ============================================================

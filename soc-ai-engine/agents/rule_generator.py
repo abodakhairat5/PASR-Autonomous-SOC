@@ -28,6 +28,40 @@ def rule_generator_agent(
     """
 
     print("\n[Agent 5 - Rule Generator] Generating runtime rule...")
+    # =========================================================
+    # Pentest events
+    # =========================================================
+    if attack_data.event_type == "PENTEST":
+
+        print("[Agent 5 - Rule Generator] Pentest finding detected.")
+
+        result = RuleGeneratorOutput(
+            rule_type="ALERT",
+            target_ip=None,
+            protocol="ANY",
+            direction="ANY",
+            parameters={
+                "event_type": "PENTEST",
+                "finding_id": attack_data.finding_id,
+                "target_url": attack_data.target_url,
+                "action": "alert",
+            },
+            rule_description=(
+                f"Alert on confirmed pentest finding "
+                f"{attack_data.finding_id or attack_data.attack_type}"
+            ),
+            requires_approval=False,
+        )
+
+        print("[Agent 5 - Rule Generator] Pentest alert rule generated.")
+        print(f"    ├─ Rule Type        : {result.rule_type}")
+        print(f"    ├─ Target IP        : {result.target_ip}")
+        print(f"    ├─ Target URL       : {attack_data.target_url}")
+        print(f"    ├─ Protocol         : {result.protocol}")
+        print(f"    ├─ Direction        : {result.direction}")
+        print(f"    └─ Requires Approval: {result.requires_approval}")
+
+        return result
 
     prompt = f"""
 You are the Rule Generator Agent in an Autonomous SOC.
