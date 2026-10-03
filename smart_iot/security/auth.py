@@ -3,21 +3,64 @@ import hmac
 
 
 class DeviceAuthenticator:
+    """
+    Authenticates IoT devices using a pre-shared secret.
 
-  def __init__(self, registered_devices: dict = None):
+    Each registered device has its own secret.
+    HMAC-SHA256 is used to authenticate the payload.
+    """
 
-    self.registered_devices = registered_devices or {}
+    def __init__(self, registered_devices: dict[str, str] | None = None):
+        self.registered_devices = registered_devices or {}
 
-  def register_device(self, device_id: str, secret_token: str):
-    self.registered_devices[device_id] = secret_token
+    def register_device(
+        self,
+        device_id: str,
+        secret: str,
+    ) -> None:
+        if not device_id:
+            raise ValueError("device_id is required")
 
-  def verify_device(
-      self, device_id: str, token: str, payload_bytes: bytes, signature: str
-  ) -> bool:
+        if not secret:
+            raise ValueError("device secret is required")
 
-    if device_id not in self.registered_devices:
-      return False
+        self.registered_devices[device_id] = secret
 
-    device_key = self.registered_devices[device_id].encode('utf-8')
-    computed_sig = hmac.new(device_key, payload_bytes, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(computed_sig, signature)
+    def is_registered(self, device_id: str) -> bool:
+        return device_id in self.registered_devices
+
+    def generate_signature(
+        self,
+        device_id: str,
+        payload_bytes: bytes,
+    ) -> str:
+        if not self.is_registered(device_id):
+            raise ValueError(f"Unknown device: {device_id}")
+
+        secret = self.registered_devices[device_id].encode("utf-8")
+
+        return hmac.new(
+            secret,
+            payload_bytes,
+            hashlib.sha256,
+        ).hexdigest()
+
+    def verify_signature(
+        self,
+        device_id: str,
+        payload_bytes: bytes,
+        signature: str,
+    ) -> bool:
+        if not self.is_registered(device_id):
+            return False
+
+        expected_signature = self.generate_signature(
+            device_id,
+            payload_bytes,
+        )
+
+        return hmac.compare_digest(
+            expected_signature,
+            signature,
+        )
+    
