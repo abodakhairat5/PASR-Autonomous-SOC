@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -7,4 +8,4 @@ class TelemetryMessage:
     device_id: str
     timestamp: datetime
     payload: dict
-    protocol: str = "MOCK"
+    protocol: str = "gRPC"
